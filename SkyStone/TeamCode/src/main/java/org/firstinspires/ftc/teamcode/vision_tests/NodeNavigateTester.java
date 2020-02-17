@@ -1,0 +1,431 @@
+package org.firstinspires.ftc.teamcode.vision_tests;
+
+import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.util.Range;
+
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.teamcode.AngleUtils;
+import org.firstinspires.ftc.teamcode.AngleSystem;
+import org.firstinspires.ftc.teamcode.Pipelines.BlueLineFinder;
+import org.firstinspires.ftc.teamcode.Pipelines.GreenNodeFinder;
+import org.firstinspires.ftc.teamcode.Pipelines.JointPipeline;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
+import org.openftc.easyopencv.OpenCvCameraRotation;
+import org.openftc.easyopencv.OpenCvPipeline;
+import org.openftc.easyopencv.OpenCvWebcam;
+
+import java.util.Random;
+
+@TeleOp(name="navTest")
+public class NodeNavigateTester extends OpMode {
+
+    //Motor stuff
+    enum motorNames {
+        FrontLeft("front_left"),
+        FrontRight("front_right"),
+        BackLeft("back_left"),
+        BackRight("back_right");
+        String myName;
+        motorNames(String name) {
+            myName = name;
+        }
+        String getName(){
+            return myName;
+        }
+    }
+
+    private DcMotor FL;
+    private DcMotor FR;
+    private DcMotor BL;
+    private DcMotor BR;
+
+    private DcMotor[] motors;
+
+    //input stuff
+    private boolean last_a = false;
+    private final double manual_movement_speed = 1;
+    private final double dead_zone_right = 0.3;
+    private final double dead_zone_left = 0.3;
+
+    //nav constants
+    private final double auto_movement_speed = 0.5;
+
+    private final double line_speed = 0.4;
+    private final double line_steer_coeff = 0.4; //how quickly it goes from min steer to max steer based on angle
+    private final double line_max_steer = 0.5; //maximum steer that will be applied
+    private final double line_turn_angle = 2*Math.PI/5;
+
+    private final double node_speed = 0.2;
+    private final double node_steer_coeff = 0.3; //how quickly it goes from min steer to max steer based on angle
+    private final double node_max_steer = 0.8; //maximum steer that will be applied
+    private final double node_forward_angle = 2*Math.PI/5;
+    private final double node_reverse_angle = 3*Math.PI/5;
+    private final double node_distance_threshold = 15; //how close it must get to the node to be considered 'on' the node
+
+    private final double found_node_perpendicular_threshold = 50; //in pixels
+    private final double found_node_parallel_threshold = 10;
+
+    private final double pixels_per_cm = 1;
+    private final double cm_ahead_prediction = 250; //incorrect for now - pixels_per_inch should be measured before a real unit is used
+
+    //angle stuff
+    private final AngleSystem OpenCV_angles = new AngleSystem(0, false,true);
+    private final AngleSystem robot_angles = new AngleSystem(Math.PI/2,false);
+
+
+
+    //Gyro stuff
+    private BNO055IMU imu;
+    private Orientation currentOrientation = new Orientation();
+    private Orientation lastOrientation = new Orientation();
+    private AxesOrder axes = AxesOrder.ZYX;
+
+    //Opencv stuff
+    private GreenNodeFinder nodePipeline;
+    private BlueLineFinder linePipeline;
+    private JointPipeline jointPipeline;
+    private OpenCvWebcam webcam;
+
+    private Point[] lineCenters;
+    private Point nodeCenter;
+    private double[] lineAngles;
+
+
+    //auto stuff
+    enum AutoMode {
+        FOLLOW_LINE,
+        ANGLES_FROM_NODE
+    }
+    private boolean auto = false;
+    private AutoMode currentMode = AutoMode.FOLLOW_LINE;
+    private double lineApproxAngle = 0;
+    private int nodeSeenCounter = 0;
+    private static final int nodeSeenThreshold = 5;
+
+
+    @Override
+    public void init(){
+        //init motors
+        FL = hardwareMap.get(DcMotor.class, motorNames.FrontLeft.getName());
+        FR = hardwareMap.get(DcMotor.class, motorNames.FrontRight.getName());
+        BL = hardwareMap.get(DcMotor.class, motorNames.BackLeft.getName());
+        BR = hardwareMap.get(DcMotor.class, motorNames.BackRight.getName());
+        DcMotor[] tempMotors = {FL, FR, BL, BR};
+        motors = tempMotors;
+
+        FL.setDirection(DcMotorSimple.Direction.REVERSE);
+        BL.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        for (DcMotor motor : motors) {
+            motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        }
+
+        //init gyro
+        imu = hardwareMap.get(BNO055IMU.class,"imu");
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.mode                = BNO055IMU.SensorMode.IMU;
+        parameters.angleUnit           = BNO055IMU.AngleUnit.RADIANS;
+        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.loggingEnabled      = true;
+        imu.initialize(parameters);
+
+        //init camerastuff
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        webcam = new OpenCvWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
+
+        // OR...  Do Not Activate the Camera Monitor View
+        //webcam = new OpenCvWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"));
+
+        /*
+         * Open the connection to the camera device
+         */
+        webcam.openCameraDevice();
+
+        /*
+         * Specify the image processing pipeline we wish to invoke upon receipt
+         * of a frame from the camera. Note that switching pipelines on-the-fly
+         * (while a streaming session is in flight) *IS* supported.
+         */
+        nodePipeline = new GreenNodeFinder();
+        linePipeline = new BlueLineFinder();
+        OpenCvPipeline[] pipelines = {nodePipeline,linePipeline};
+        jointPipeline = new JointPipeline(pipelines);
+        webcam.setPipeline(jointPipeline);
+
+        webcam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
+
+
+    }
+
+    @Override
+    public void loop(){
+        lineAngles = linePipeline.getLineAngles();
+        lineCenters = linePipeline.getLineCenters();
+        nodeCenter = nodePipeline.getFindNodeCenter();
+
+
+
+        //get gyro angle
+        currentOrientation = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.RADIANS);
+        telemetry.addData("Current Gyro angle: ",currentOrientation.firstAngle);
+
+        double[] targetPoint = getTargetPoint();
+        double[] robotCenter = {linePipeline.maskOutput().width()/2,linePipeline.maskOutput().height()/2}; //would need to invert y, but exactly halfway in the image, so not needed
+        double targetAngle = (robot_angles.fromGlobal(AngleUtils.angleBetweenPoints(robotCenter,targetPoint))+Math.PI)%(Math.PI*2)-Math.PI;//angleBetweenPoints uses tan from the right, convert to tan from the front
+        double targetDistance = AngleUtils.distance(targetPoint,robotCenter);
+
+        //display approxLineAngle and chosen line
+        double opencvAngle = (robot_angles.toGlobal(lineApproxAngle + currentOrientation.firstAngle));
+        Point p1 = new Point(robotCenter);
+        Point p2 = new Point(AngleUtils.projectPoint(opencvAngle,20,robotCenter));
+        p2.y = linePipeline.maskOutput().height()- p2.y;
+        Point p3 = new Point();
+        if (getFollowedLineIndex() >= 0 && lineCenters.length > 0){
+            p3 = lineCenters[getFollowedLineIndex()];
+        }
+
+        Point[] displayPoints = {p1,p2,p3, new Point(targetPoint[0],linePipeline.maskOutput().height()-targetPoint[1])};
+        jointPipeline.setDisplayPoints(displayPoints,new Scalar(255,0,0));
+
+
+        telemetry.addData("Test distance", AngleUtils.shortestAngleBetween(1.5707,1.588));
+        telemetry.addData("Line Angles: ", arrayToString(lineAngles));
+        telemetry.addData("Line Centers: ", arrayToString(lineCenters));
+
+        telemetry.addData("Target Pos: ", arrayToString(targetPoint));
+        telemetry.addData("Target angle: ", targetAngle);
+        telemetry.addData("Target distance: ", targetDistance);
+
+        double[] shiftedAngles = getShiftedLineAngles(nodeCenter != null);
+        double[] realAngles = new double[shiftedAngles.length];
+        for (int i = 0; i < realAngles.length; i++)
+        {
+            realAngles[i] = robot_angles.fromGlobal(shiftedAngles[i]);
+        }
+        telemetry.addData("robot angled lines", arrayToString(realAngles));
+        telemetry.addData("robot line approx Angle", (lineApproxAngle));
+
+        telemetry.addData("global angled lines", arrayToString(shiftedAngles));
+        telemetry.addData("global line approx Angle", robot_angles.toGlobal(lineApproxAngle));
+
+
+        double[] test1 = {2,-0.5};
+        double targetTest = gamepad1.left_stick_y;
+        telemetry.addData("Closest Angle", test1[AngleUtils.nearestAngle(targetTest,test1)]);
+
+
+        //check auto switching
+        if (gamepad1.a && !last_a){
+            auto = !auto;
+        }
+        last_a = gamepad1.a;
+
+
+        //do movement
+        if (auto){
+            telemetry.addData("Auto: ", "Enabled");
+            telemetry.addData("Auto Mode: ", currentMode.name());
+            double maxSpeed = 0; //from -1 - 1; all output values relative to maxSpeed being the max. Scaled down to auto speeds later
+            double steer = 0;
+            double speed = 0;
+            switch (currentMode){
+                case FOLLOW_LINE:
+                    steer = Range.clip(targetAngle*line_steer_coeff,-1,1)* line_max_steer;
+                    maxSpeed = 1;
+                    speed = (Math.abs(targetAngle) < line_turn_angle ? line_speed : 0);
+                    break;
+                case ANGLES_FROM_NODE:
+                    steer = Range.clip(targetAngle*node_steer_coeff,-1,1)* node_max_steer;
+                    maxSpeed = Math.min(targetDistance/10,1);
+                    speed = (Math.abs(targetAngle) < node_forward_angle ? node_speed : (Math.abs(targetAngle > node_reverse_angle ? -node_speed : 0)));
+                    if (targetDistance < node_distance_threshold) {
+                        speed = 0;
+                        maxSpeed = 0;
+                        steer = 0;
+                    }
+                    break;
+            }
+
+
+            double leftSpeed = speed  + steer;
+            double rightSpeed = speed - steer;
+            if (leftSpeed != 0 || rightSpeed != 0){
+                double max = Math.max(Math.abs(leftSpeed), Math.abs(rightSpeed));
+                if (max > maxSpeed) {
+                    leftSpeed = leftSpeed/(max)*maxSpeed;
+                    rightSpeed = rightSpeed/(max)*maxSpeed;
+                }
+            }
+            double leftPower = auto_movement_speed*leftSpeed;
+            double rightPower = auto_movement_speed*rightSpeed;
+            FL.setPower(leftPower);
+            BL.setPower(leftPower);
+            FR.setPower(rightPower);
+            BR.setPower(rightPower);
+        } else {
+            manualInput();
+        }
+
+
+        //auto logic stuff
+        if (auto) {
+            if (currentMode == AutoMode.FOLLOW_LINE) {
+                if (lineAngles != null && lineAngles.length > 0) {
+                    if (nodeCenter != null) {
+                        double[] nodePos = AngleUtils.getPointPos(nodeCenter);
+                        nodePos[1] = nodePipeline.getFindNodeImageOutput().height() - nodePos[1];
+                        int targetIndex = getFollowedLineIndex();
+                        double[] linePoint = AngleUtils.getPointPos(lineCenters[targetIndex]);
+                        linePoint[1] = linePipeline.maskOutput().height() - linePoint[1];
+                        double perpDist = AngleUtils.perpendicularDistance(linePoint, robot_angles.toGlobal(lineApproxAngle), nodePos);
+                        double parDist = AngleUtils.parallelDistance(linePoint, robot_angles.toGlobal(lineApproxAngle), nodePos);
+                        if (parDist > found_node_parallel_threshold && perpDist < found_node_perpendicular_threshold) {
+                            nodeSeenCounter++;
+                        }else{
+                            nodeSeenCounter = Range.clip(nodeSeenCounter - 2, 0, 100);
+                        }
+                        if (nodeSeenCounter > nodeSeenThreshold) {
+                            nodeSeenCounter = 0;
+                            currentMode = AutoMode.ANGLES_FROM_NODE;
+                        }
+                    } else
+                        nodeSeenCounter = Range.clip(nodeSeenCounter - 2, 0, 100);
+                }
+            } else if (currentMode == AutoMode.ANGLES_FROM_NODE) {
+                if (targetDistance < node_distance_threshold) {
+                    if (lineAngles != null && lineAngles.length > 0) {
+                        int chosenLine = (int) Math.random() * lineAngles.length;
+                        double angle = lineAngles[chosenLine];
+                        Point centerPoint = lineCenters[chosenLine];
+                        boolean sign = (0 >= angle && angle >= -45 ? centerPoint.x < nodeCenter.x :
+                                (-45 > angle && angle >= -135 ? centerPoint.y > nodeCenter.y :
+                                        (centerPoint.x >= nodeCenter.x)));
+                        lineApproxAngle = robot_angles.fromGlobal(Math.PI * (sign ? 1 : 0) + OpenCV_angles.toGlobal(angle) + currentOrientation.firstAngle);
+                        currentMode = AutoMode.FOLLOW_LINE;
+                    }
+                }
+            }
+        }
+
+
+
+        //set last gyro angle
+        lastOrientation = currentOrientation;
+    }
+
+
+
+    public void manualInput(){
+        telemetry.addData("Left power: ",gamepad1.left_stick_y);
+        telemetry.addData("Right power: ",gamepad1.right_stick_y);
+        double right_input = (Math.abs(gamepad1.right_stick_y) > dead_zone_right ? gamepad1.right_stick_y : 0);
+        double left_input = (Math.abs(gamepad1.left_stick_y) > dead_zone_left ? gamepad1.left_stick_y : 0);
+        FR.setPower(-right_input*manual_movement_speed);
+        BR.setPower(-right_input*manual_movement_speed);
+        FL.setPower(-left_input*manual_movement_speed);
+        BL.setPower(-left_input*manual_movement_speed);
+    }
+
+
+
+    private int getFollowedLineIndex(){
+        double targetAngle = robot_angles.toGlobal(lineApproxAngle);
+        double[] shiftedAngles;
+        if (nodeCenter != null) { //get exact directions based on node
+            shiftedAngles = getShiftedLineAngles(true);
+        }
+        else{ //check line angles in both directions, actual angle sorted out with getFollowedLineAngle
+            shiftedAngles = getShiftedLineAngles(false);
+            return AngleUtils.nearestAngle(targetAngle,shiftedAngles)/2;
+        }
+        return AngleUtils.nearestAngle(targetAngle,shiftedAngles);
+    }
+
+    //if not useNode, will return a list that is twice as long, with each pair 2i and 2i+1 being 180 degrees of each other
+    private double[] getShiftedLineAngles(boolean useNode){
+        double[] shiftedAngles = new double[lineAngles.length];
+        if (useNode) {
+            for (int i = 0; i < lineCenters.length; i++) {
+                Point centerPoint = lineCenters[i];
+                double angle = lineAngles[i];
+                boolean sign = (0 >= angle && angle >= -45 ? centerPoint.x < nodeCenter.x :
+                        (-45 > angle && angle > -135 ? centerPoint.y > nodeCenter.y :
+                                        (centerPoint.x >= nodeCenter.x)));
+                shiftedAngles[i] = (Math.PI * (sign ? 1 : 0) + OpenCV_angles.toGlobal(angle) + currentOrientation.firstAngle + Math.PI*6) % (Math.PI*2);
+            }
+        }
+        else {
+            shiftedAngles = new double[lineAngles.length*2];
+            for (int i = 0; i < lineAngles.length*2; i++)
+            {
+                shiftedAngles[i] = (OpenCV_angles.toGlobal(lineAngles[i/2] + (i%2 == 0 ? 180 : 0)) + currentOrientation.firstAngle + Math.PI*6) % (Math.PI*2);
+            }
+        }
+        return  shiftedAngles;
+    }
+
+    //returns in global angles
+    private double getFollowedLineAngle() {
+        double targetAngle = robot_angles.toGlobal(lineApproxAngle);
+        double[] shiftedAngles = getShiftedLineAngles(nodeCenter != null);
+        return shiftedAngles[AngleUtils.nearestAngle(targetAngle,shiftedAngles)];
+    }
+
+    //returns in realworld pixel space (shifted from opencv's y, but 1 unit per pixel still)
+    public double[] getTargetPoint(){
+        double[] result = new double[2];
+        switch (currentMode) {
+            case FOLLOW_LINE:
+                if (lineCenters != null && lineCenters.length > 0) {
+                    int targetIndex = getFollowedLineIndex();
+                    Point center = lineCenters[targetIndex];
+                    double[] linePoint = AngleUtils.getPointPos(center);
+                    linePoint[1] = linePipeline.maskOutput().height() - linePoint[1];
+                    double lineAngle = getFollowedLineAngle() - currentOrientation.firstAngle;
+                    telemetry.addData("Projection line angle",lineAngle);
+                    result = AngleUtils.projectPoint(lineAngle, cm_ahead_prediction * pixels_per_cm, linePoint);
+                }
+                else
+                    result = new double[2];
+                break;
+            case ANGLES_FROM_NODE:
+                if (nodeCenter != null) {
+                    double[] shiftedNode = AngleUtils.getPointPos(nodeCenter);
+                    shiftedNode[1] = nodePipeline.getFindNodeImageOutput().height() - shiftedNode[1];
+                    result = shiftedNode;
+                } else
+                    result = new double[2];
+                break;
+        }
+        return result;
+    }
+
+
+    public String arrayToString(double[] array){
+        String result = " ";
+        for (Object obj : array){
+            result += obj + ",";
+        }
+        return "["+result.substring(0,result.length()-1) + " ]";
+    }
+    public String arrayToString(Point[] array){
+        String result = " ";
+        for (Object obj : array){
+            if (obj == null)
+                result += "null,";
+            else
+                result += obj + ",";
+        }
+        return "["+result.substring(0,result.length()-1) + " ]";
+    }
+}

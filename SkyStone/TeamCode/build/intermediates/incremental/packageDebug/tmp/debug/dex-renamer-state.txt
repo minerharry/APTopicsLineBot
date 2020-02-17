@@ -1,4 +1,4 @@
-#Fri Nov 01 13:27:16 EDT 2019
-base.0=C\:\\Users\\harrison_truscott\\Documents\\GitHub\\SkyStone\\TeamCode\\build\\intermediates\\dex\\debug\\mergeDexDebug\\out
+#Sat Feb 15 15:49:03 EST 2020
+base.0=C\:\\Users\\harrison_truscott\\Documents\\GitHub\\APTopicsLineBot\\SkyStone\\TeamCode\\build\\intermediates\\dex\\debug\\mergeDexDebug\\out
 path.0=classes.dex
 renamed.0=classes.dex

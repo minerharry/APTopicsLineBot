@@ -89,6 +89,7 @@
     </content>
     <orderEntry type="jdk" jdkName="Android API 28 Platform" jdkType="Android SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Gradle: com.github.dogecv:dogecv:2020.4-alpha@aar" level="project" />
     <orderEntry type="library" name="Gradle: org.openftc:easyopencv:1.2@aar" level="project" />
     <orderEntry type="library" name="Gradle: org.openftc:opencv-repackaged:4.1.0-A@aar" level="project" />
     <orderEntry type="library" name="Gradle: :RobotCore-release:@aar" level="project" />
