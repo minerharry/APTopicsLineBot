@@ -14,6 +14,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.teamcode.AngleSystem;
 import org.firstinspires.ftc.teamcode.AngleUtils;
 import org.firstinspires.ftc.teamcode.Pipelines.BlueLineFinder;
 import org.firstinspires.ftc.teamcode.Pipelines.GreenNodeFinder;
@@ -59,11 +60,15 @@ public class NodeCenterTester extends OpMode {
     private boolean last_a = false;
     private final double movement_speed = 0.2;
     private final double auto_slowdown = 0.6;
-    private final double steer_coeff = 0.4;
     private final double dead_zone_right = 0.3;
     private final double dead_zone_left = 0.3;
-    private final double max_turn_angle = 2*Math.PI/5;
-    private final double min_reverse_angle = 3*Math.PI/5;
+    private final double node_speed = 0.2;
+    private final double node_steer_coeff = 0.3; //how quickly it goes from min steer to max steer based on angle
+    private final double node_max_steer = 0.8; //maximum steer that will be applied
+    private final double node_forward_angle = 2*Math.PI/5;
+    private final double node_reverse_angle = 3*Math.PI/5;
+
+    private final AngleSystem robot_angles = new AngleSystem(Math.PI/2,false);
 
 
     @Override
@@ -143,11 +148,9 @@ public class NodeCenterTester extends OpMode {
         Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.RADIANS);
         telemetry.addData("Current Gyro angle: ",angles.firstAngle);
 
+
         double[] robotCenter = {pipeline.getFindNodeImageOutput().width()/2,pipeline.getFindNodeImageOutput().height()/2};
 
-        double targetAngle = (Math.PI*2 - AngleUtils.angleBetweenPoints(robotCenter,pipeline.getFindNodeCenter()))%(Math.PI*2) - Math.PI;
-        telemetry.addData("Raw Angle: ", AngleUtils.angleBetweenPoints(robotCenter,pipeline.getFindNodeCenter()));
-        telemetry.addData("Target Angle: ", targetAngle);
 
         if (gamepad1.a && !last_a){
             auto = !auto;
@@ -155,13 +158,20 @@ public class NodeCenterTester extends OpMode {
         last_a = gamepad1.a;
 
         if (auto){
+
+            double[] targetPoint = {0,0};
+            if (pipeline.getFindNodeCenter() != null)
+                targetPoint = AngleUtils.getPointPos(pipeline.getFindNodeCenter());
+            targetPoint[1] = pipeline.getFindNodeImageOutput().height() - targetPoint[1];
+
+            double targetAngle = (robot_angles.fromGlobal(AngleUtils.angleBetweenPoints(robotCenter,targetPoint)) + 3*Math.PI)%(Math.PI*2) - Math.PI;
+            telemetry.addData("Target Angle",targetAngle);
             // adjust relative speed based on heading error.
-            double distance = Math.sqrt(Math.pow(robotCenter[0]-pipeline.getFindNodeCenter().x,2) + Math.pow(robotCenter[1]-pipeline.getFindNodeCenter().y,2));
+            double distance = AngleUtils.distance(robotCenter,targetPoint);
             telemetry.addData("Distance to target: ", distance);
             if (distance > 20) {
-
-                double speed = (Math.abs(targetAngle) < max_turn_angle ? movement_speed : (Math.abs(targetAngle) > min_reverse_angle ? -movement_speed : 0));
-                double steer = getSteer(targetAngle, steer_coeff);
+                double steer =Range.clip(targetAngle*node_steer_coeff,-1,1)* node_max_steer; //from -1 - 1; all output values relative to maxSpeed being the max. Scaled down to auto speeds later
+                double speed = (Math.abs(targetAngle) < node_forward_angle ? node_speed : (Math.abs(targetAngle > node_reverse_angle ? -node_speed : 0)));
 
 
                 double idealSpeed = Math.min(1.0,distance/100)*auto_slowdown;
@@ -203,7 +213,7 @@ public class NodeCenterTester extends OpMode {
 
 
 
-        telemetry.addData("Node center: ", pipeline.getFindNodeCenter().toString());
+        telemetry.addData("Node center: ", (pipeline.getFindNodeCenter() == null ? "null" :pipeline.getFindNodeCenter().toString()));
         //telemetry.addData("Node radius: ", pipeline.getFindNodeRadius() + "");
         //telemetry.addData("Node area: ", pipeline.getFindNodeArea() + "");
     };

@@ -51,9 +51,9 @@ public class AngleUtils {
 
     //returns multiplied by shortestDirectionBetween, effectively
     public static double shortestAngleBetween(double angle1, double angle2) {
-        angle1 = (angle1 + Math.PI*4)%(Math.PI*2);
-        angle2 = (angle2 + Math.PI*4)%(Math.PI*2);
-        double angleDiff = ((angle1-angle2)+Math.PI*4)%(Math.PI*2);
+        angle1 = (angle1 + Math.PI*4)%(Math.PI*2); //normalize angles
+        angle2 = (angle2 + Math.PI*4)%(Math.PI*2); //normalize angles
+        double angleDiff = ((angle1-angle2)+Math.PI*4)%(Math.PI*2); //get clockwise distance and normalize
         if (angleDiff == 0) {
             return 0;
         }

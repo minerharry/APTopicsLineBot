@@ -22,10 +22,7 @@ public class AngleSystem{
 
     //always returns in radians because global is radians
     public double toGlobal(double inAngle){
-        if (isDegrees){
-            inAngle *= Math.PI/180;
-        }
-        return (axesZeroAngle + (direction ? 1 : -1)*inAngle + Math.PI*4) % (Math.PI*2);
+        return (axesZeroAngle + inAngle*(direction ? 1 : -1)*(isDegrees?Math.PI/180:1) + Math.PI*4) % (Math.PI*2);
     }
 
     public double fromGlobal(double globalAngle){
@@ -33,7 +30,7 @@ public class AngleSystem{
 
     }
 
-    public double converTo(double inAngle, AngleSystem target){
+    public double convertTo(double inAngle, AngleSystem target){
         return target.fromGlobal(toGlobal(inAngle));
     }
 }
