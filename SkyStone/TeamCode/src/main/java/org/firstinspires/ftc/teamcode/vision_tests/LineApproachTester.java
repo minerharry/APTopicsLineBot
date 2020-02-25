@@ -139,9 +139,8 @@ public class LineApproachTester extends OpMode {
 
         telemetry.addData("Target Point: ", targetPoint[0] + ", " + targetPoint[1]);
 
-        pipeline.addDisplayPoint(new Point(targetPoint[0],pipeline.maskOutput().height() - targetPoint[1]));
 
-        double targetAngle = (AngleUtils.angleBetweenPoints(robotCenter,targetPoint) + 3*Math.PI)%(Math.PI*2) - Math.PI;
+        double targetAngle = (robot_angles.fromGlobal(AngleUtils.angleBetweenPoints(robotCenter,targetPoint)) + 3*Math.PI)%(Math.PI*2) - Math.PI;
         telemetry.addData("Target Angle: ", targetAngle);
 
         double manual_slowdown = (speed_toggle ? 1 : 0)*(gamepad1.right_trigger < 0.1 ? (gamepad1.left_trigger < 0.1 ? 1 : 0.5) : 2);
@@ -175,8 +174,10 @@ public class LineApproachTester extends OpMode {
                         rightSpeed = rightSpeed/(max)*maxSpeed;
                     }
                 }
-                double leftPower = auto_movement_speed*leftSpeed*manual_slowdown;
-                double rightPower = auto_movement_speed*rightSpeed*manual_slowdown;
+                double leftPower = -auto_movement_speed*leftSpeed*manual_slowdown;
+                double rightPower = -auto_movement_speed*rightSpeed*manual_slowdown;
+                telemetry.addData("Left Power", leftPower);
+                telemetry.addData("Right Power", rightPower);
                 FL.setPower(leftPower);
                 BL.setPower(leftPower);
                 FR.setPower(rightPower);
