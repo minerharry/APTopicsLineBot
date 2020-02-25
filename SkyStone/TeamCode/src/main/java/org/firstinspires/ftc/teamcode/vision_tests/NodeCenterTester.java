@@ -57,6 +57,8 @@ public class NodeCenterTester extends OpMode {
     }
 
     private boolean auto = false;
+    private boolean speed_toggle = true;
+    private boolean last_bumper = false;
     private boolean last_a = false;
     private final double movement_speed = 0.2;
     private final double auto_slowdown = 0.6;
@@ -152,6 +154,12 @@ public class NodeCenterTester extends OpMode {
         double[] robotCenter = {pipeline.getFindNodeImageOutput().width()/2,pipeline.getFindNodeImageOutput().height()/2};
 
 
+        double manual_slowdown = (speed_toggle ? 1 : 0)*(gamepad1.right_trigger < 0.1 ? (gamepad1.left_trigger < 0.1 ? 1 : 0.5) : 2);
+        if (!last_bumper && gamepad1.right_bumper){
+            speed_toggle = !speed_toggle;
+        }
+        last_bumper = gamepad1.right_bumper;
+
         if (gamepad1.a && !last_a){
             auto = !auto;
         }
@@ -193,10 +201,10 @@ public class NodeCenterTester extends OpMode {
                 }
                 double leftPower = -leftSpeed;
                 double rightPower = -rightSpeed;
-                FL.setPower(leftPower);
-                BL.setPower(leftPower);
-                FR.setPower(rightPower);
-                BR.setPower(rightPower);
+                FL.setPower(leftPower*manual_slowdown);
+                BL.setPower(leftPower*manual_slowdown);
+                FR.setPower(rightPower*manual_slowdown);
+                BR.setPower(rightPower*manual_slowdown);
             }
             else {
                 for (DcMotor motor :motors) {
@@ -208,10 +216,10 @@ public class NodeCenterTester extends OpMode {
             telemetry.addData("Right power: ",gamepad1.right_stick_y);
             double right_input = (Math.abs(gamepad1.right_stick_y) > dead_zone_right ? gamepad1.right_stick_y : 0);
             double left_input = (Math.abs(gamepad1.left_stick_y) > dead_zone_left ? gamepad1.left_stick_y : 0);
-            FR.setPower(right_input*movement_speed);
-            BR.setPower(right_input*movement_speed);
-            FL.setPower(left_input*movement_speed);
-            BL.setPower(left_input*movement_speed);
+            FR.setPower(right_input*movement_speed*manual_slowdown);
+            BR.setPower(right_input*movement_speed*manual_slowdown);
+            FL.setPower(left_input*movement_speed*manual_slowdown);
+            BL.setPower(left_input*movement_speed*manual_slowdown);
         }
 
 
