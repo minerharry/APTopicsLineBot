@@ -64,7 +64,7 @@ public class NodeCenterTester extends OpMode {
     private final double dead_zone_left = 0.3;
     private final double node_speed = 0.2;
     private final double node_steer_coeff = 0.3; //how quickly it goes from min steer to max steer based on angle
-    private final double node_max_steer = 0.8; //maximum steer that will be applied
+    private final double node_max_steer = 0.6; //maximum steer that will be applied
     private final double node_forward_angle = 2*Math.PI/5;
     private final double node_reverse_angle = 3*Math.PI/5;
 
@@ -170,8 +170,14 @@ public class NodeCenterTester extends OpMode {
             double distance = AngleUtils.distance(robotCenter,targetPoint);
             telemetry.addData("Distance to target: ", distance);
             if (distance > 20) {
+                double speed = (Math.abs(targetAngle) < node_forward_angle ? node_speed :  0);
+                if (Math.abs(targetAngle) > node_reverse_angle) {
+                    speed = -node_speed;
+                    targetAngle = 180-targetAngle;
+                    targetAngle = (targetAngle + Math.PI*3) % (Math.PI*2) - Math.PI;
+                }
                 double steer =Range.clip(targetAngle*node_steer_coeff,-1,1)* node_max_steer; //from -1 - 1; all output values relative to maxSpeed being the max. Scaled down to auto speeds later
-                double speed = (Math.abs(targetAngle) < node_forward_angle ? node_speed : (Math.abs(targetAngle > node_reverse_angle ? -node_speed : 0)));
+
 
 
                 double idealSpeed = Math.min(1.0,distance/100)*auto_slowdown;

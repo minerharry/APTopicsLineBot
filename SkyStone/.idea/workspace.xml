@@ -47,8 +47,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/vision_tests/NodeNavigateTester.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="84">
-              <caret line="368" column="9" selection-start-line="368" selection-start-column="9" selection-end-line="368" selection-end-column="9" />
+            <state relative-caret-position="50">
+              <caret line="295" column="65" lean-forward="true" selection-start-line="295" selection-start-column="65" selection-end-line="295" selection-end-column="65" />
             </state>
           </provider>
         </entry>
@@ -65,8 +65,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/vision_tests/NodeCenterTester.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2448">
-              <caret line="166" column="149" selection-start-line="166" selection-start-column="33" selection-end-line="166" selection-end-column="149" />
+            <state relative-caret-position="2567">
+              <caret line="173" column="16" selection-start-line="173" selection-start-column="16" selection-end-line="177" selection-end-column="17" />
             </state>
           </provider>
         </entry>
@@ -127,8 +127,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>getSteer</find>
-      <find>gamepad1.right_stick_y</find>
       <find>gamepad1.left_stick_y</find>
       <find>l</find>
       <find>lineAngle</find>
@@ -157,6 +155,8 @@
       <find>imu.</find>
       <find>getFollowed</find>
       <find>getFollowedLineError</find>
+      <find>auto_mo</find>
+      <find>manualInput</find>
     </findStrings>
     <replaceStrings>
       <replace>length</replace>
@@ -213,7 +213,7 @@
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds" extendedState="7">
+  <component name="ProjectFrameBounds" extendedState="6">
     <option name="x" value="-12" />
     <option name="y" value="-12" />
     <option name="width" value="984" />
@@ -225,23 +225,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="AndroidView" />
-      <pane id="Scope" />
-      <pane id="PackagesPane">
-        <subPane>
-          <expand>
-            <path>
-              <item name="SkyStone" type="58d84e3e:PackageViewProjectNode" />
-              <item name="FtcRobotController" type="616d4139:PackageViewModuleNode" />
-            </path>
-            <path>
-              <item name="SkyStone" type="58d84e3e:PackageViewProjectNode" />
-              <item name="TeamCode" type="616d4139:PackageViewModuleNode" />
-            </path>
-          </expand>
-          <select />
-        </subPane>
-      </pane>
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -322,6 +305,23 @@
           <select />
         </subPane>
       </pane>
+      <pane id="PackagesPane">
+        <subPane>
+          <expand>
+            <path>
+              <item name="SkyStone" type="58d84e3e:PackageViewProjectNode" />
+              <item name="FtcRobotController" type="616d4139:PackageViewModuleNode" />
+            </path>
+            <path>
+              <item name="SkyStone" type="58d84e3e:PackageViewProjectNode" />
+              <item name="TeamCode" type="616d4139:PackageViewModuleNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+      <pane id="AndroidView" />
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -446,10 +446,10 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-7" y="-7" width="1295" height="695" extended-state="7" />
+    <frame x="-7" y="-7" width="1295" height="695" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.60465115" visible="true" weight="0.26882592" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.60465115" visible="true" weight="0.12955466" />
       <window_info id="Captures" order="1" sideWeight="0.2248062" side_tool="true" weight="0.21052632" />
       <window_info id="Structure" order="2" side_tool="true" />
       <window_info id="Favorites" order="3" sideWeight="0.5013123" side_tool="true" weight="0.32955465" />
@@ -463,9 +463,9 @@
       <window_info anchor="bottom" id="TODO" order="2" sideWeight="0.49716598" weight="0.3285968" />
       <window_info anchor="bottom" id="Debug" order="3" sideWeight="0.8229342" weight="0.58018017" />
       <window_info anchor="bottom" id="Terminal" order="4" sideWeight="0.49635628" weight="0.3285968" />
-      <window_info anchor="bottom" id="Event Log" order="5" sideWeight="0.50931174" side_tool="true" visible="true" weight="0.312611" />
+      <window_info anchor="bottom" id="Event Log" order="5" sideWeight="0.5109312" side_tool="true" visible="true" weight="0.312611" />
       <window_info anchor="bottom" id="Version Control" order="6" sideWeight="0.49959514" weight="0.3285968" />
-      <window_info active="true" anchor="bottom" id="Build" order="7" sideWeight="0.49068826" visible="true" weight="0.312611" />
+      <window_info anchor="bottom" id="Build" order="7" sideWeight="0.48906884" visible="true" weight="0.312611" />
       <window_info anchor="bottom" id="Android Profiler" order="8" show_stripe_button="false" />
       <window_info anchor="bottom" id="Find" order="9" weight="0.3285968" />
       <window_info anchor="right" id="Device File Explorer" order="0" side_tool="true" />
@@ -695,8 +695,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/vision_tests/NodeCenterTester.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2448">
-          <caret line="166" column="149" selection-start-line="166" selection-start-column="33" selection-end-line="166" selection-end-column="149" />
+        <state relative-caret-position="2567">
+          <caret line="173" column="16" selection-start-line="173" selection-start-column="16" selection-end-line="177" selection-end-column="17" />
         </state>
       </provider>
     </entry>
@@ -737,8 +737,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/vision_tests/NodeNavigateTester.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="84">
-          <caret line="368" column="9" selection-start-line="368" selection-start-column="9" selection-end-line="368" selection-end-column="9" />
+        <state relative-caret-position="50">
+          <caret line="295" column="65" lean-forward="true" selection-start-line="295" selection-start-column="65" selection-end-line="295" selection-end-column="65" />
         </state>
       </provider>
     </entry>

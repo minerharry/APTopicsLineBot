@@ -70,7 +70,7 @@ public class NodeNavigateTester extends OpMode {
 
     private final double node_speed = 0.25;
     private final double node_steer_coeff = 0.5; //how quickly it goes from min steer to max steer based on angle
-    private final double node_max_steer = 0.8; //maximum steer that will be applied
+    private final double node_max_steer = 0.6; //maximum steer that will be applied
     private final double node_forward_angle = 2*Math.PI/5;
     private final double node_reverse_angle = 3*Math.PI/5;
     private final double node_distance_threshold = 15; //how close it must get to the node to be considered 'on' the node
@@ -114,6 +114,9 @@ public class NodeNavigateTester extends OpMode {
     private double lineApproxAngle = 0;
     private int nodeSeenCounter = 0;
     private static final int nodeSeenThreshold = 4;
+
+    private int nodeNotSeenCounter = 0;
+    private static final int nodeNodeSeenThreshold = 6;
 
 
     @Override
@@ -227,7 +230,8 @@ public class NodeNavigateTester extends OpMode {
         double targetTest = gamepad1.left_stick_y;
         telemetry.addData("Closest Angle", test1[AngleUtils.nearestAngle(targetTest,test1)]);
 
-
+        telemetry.addData("Trigger values","Left: " + gamepad1.left_trigger + ", Right: " + gamepad1.right_trigger);
+        double manual_slowdown = (gamepad1.right_trigger < 0.1 ? (gamepad1.left_trigger < 0.1 ? 1 : 0.5) : 2);
         //check auto switching
         if (gamepad1.a && !last_a){
             auto = !auto;
@@ -249,9 +253,14 @@ public class NodeNavigateTester extends OpMode {
                     speed = (Math.abs(targetAngle) < line_turn_angle ? line_speed : (Math.abs(targetAngle) > line_reverse_angle ? -line_speed : 0.05*-line_speed));
                     break;
                 case ANGLES_FROM_NODE:
-                    steer = Range.clip(targetAngle*node_steer_coeff,-1,1)* node_max_steer;
                     maxSpeed = Math.min(targetDistance/40,1);
-                    speed = (Math.abs(targetAngle) < node_forward_angle ? node_speed : (Math.abs(targetAngle > node_reverse_angle ? -node_speed : 0)));
+                    speed = (Math.abs(targetAngle) < node_forward_angle ? node_speed : 0);
+                    if (Math.abs(targetAngle) > node_reverse_angle) {
+                        speed = -node_speed;
+                        targetAngle = 180-targetAngle;
+                        targetAngle = (targetAngle + Math.PI*3) % (Math.PI*2) - Math.PI;
+                    }
+                    steer = Range.clip(targetAngle*node_steer_coeff,-1,1)* node_max_steer;
                     if (targetDistance < node_distance_threshold) {
                         speed = 0;
                         maxSpeed = 0;
@@ -268,14 +277,14 @@ public class NodeNavigateTester extends OpMode {
                     rightSpeed = rightSpeed/(max)*maxSpeed;
                 }
             }
-            double leftPower = auto_movement_speed*leftSpeed;
-            double rightPower = auto_movement_speed*rightSpeed;
+            double leftPower = auto_movement_speed*leftSpeed*manual_slowdown;
+            double rightPower = auto_movement_speed*rightSpeed*manual_slowdown;
             FL.setPower(leftPower);
             BL.setPower(leftPower);
             FR.setPower(rightPower);
             BR.setPower(rightPower);
         } else {
-            manualInput();
+            manualInput(manual_slowdown);
         }
 
 
@@ -289,12 +298,15 @@ public class NodeNavigateTester extends OpMode {
                         int targetIndex = getFollowedLineIndex(false);
                         double[] linePoint = AngleUtils.getPointPos(lineCenters[targetIndex]);
                         linePoint[1] = linePipeline.maskOutput().height() - linePoint[1];
-                        if (Math.abs(getFollowedLineError()) > line_angle_error_threshold) {
+                        if (Math.abs(getFollowedLineError(false)) > line_angle_error_threshold) {
                             linePoint = robotCenter;
                             telemetry.addData("error","prone");
                         }
                         double perpDist = AngleUtils.perpendicularDistance(linePoint, robot_angles.toGlobal(lineApproxAngle), nodePos);
                         double parDist = AngleUtils.parallelDistance(linePoint, robot_angles.toGlobal(lineApproxAngle), nodePos);
+                        telemetry.addData("Perp Inputs",arrayToString(linePoint) + ", " + robot_angles.toGlobal(lineApproxAngle) + ", " + arrayToString(nodePos));
+                        telemetry.addData("ParDist",parDist);
+                        telemetry.addData("PerpDist",perpDist);
                         if (parDist > found_node_parallel_threshold && perpDist < found_node_perpendicular_threshold) {
                             nodeSeenCounter++;
                         }else{
@@ -343,15 +355,15 @@ public class NodeNavigateTester extends OpMode {
 
 
 
-    public void manualInput(){
+    public void manualInput(double scale){
         telemetry.addData("Left power: ",gamepad1.left_stick_y);
         telemetry.addData("Right power: ",gamepad1.right_stick_y);
         double right_input = (Math.abs(gamepad1.right_stick_y) > dead_zone_right ? gamepad1.right_stick_y : 0);
         double left_input = (Math.abs(gamepad1.left_stick_y) > dead_zone_left ? gamepad1.left_stick_y : 0);
-        FR.setPower(-right_input*manual_movement_speed);
-        BR.setPower(-right_input*manual_movement_speed);
-        FL.setPower(-left_input*manual_movement_speed);
-        BL.setPower(-left_input*manual_movement_speed);
+        FR.setPower(-right_input*manual_movement_speed*scale);
+        BR.setPower(-right_input*manual_movement_speed*scale);
+        FL.setPower(-left_input*manual_movement_speed*scale);
+        BL.setPower(-left_input*manual_movement_speed*scale);
     }
 
 
