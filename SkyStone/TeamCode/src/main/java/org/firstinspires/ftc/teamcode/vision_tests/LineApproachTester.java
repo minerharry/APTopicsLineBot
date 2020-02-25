@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.teamcode.AngleSystem;
 import org.firstinspires.ftc.teamcode.AngleUtils;
 import org.firstinspires.ftc.teamcode.Pipelines.BlueLineFinder;
 import org.opencv.core.Point;
@@ -37,17 +38,26 @@ public class LineApproachTester extends OpMode {
 
     private DcMotor[] motors;
 
+    private boolean speed_toggle = true;
+    private boolean last_bumper = false;
     private boolean auto = false;
     private boolean last_a = false;
-    private final double movement_speed = 0.2;
-    private final double auto_slowdown = 1.2;
-    private final double steer_coeff = 0.4;
-    private final double dead_zone_right = 0.3;
-    private final double dead_zone_left = 0.3;
-    private final double max_turn_angle = 2*Math.PI/5;
+    private final double auto_movement_speed = 0.5;
+    private final double line_speed = 0.35;
+    private final double line_steer_coeff = 0.5; //how quickly it goes from min steer to max steer based on angle
+    private final double line_max_steer = 0.8; //maximum steer that will be applied
+    private final double line_turn_angle = 1*Math.PI/4;
+    private final double line_reverse_angle = 4*Math.PI/5;
     private final double pixels_per_cm = 1;
     private final double cm_ahead_prediction = 250; //incorrect for now - pixels_per_inch should be measured before a real unit is used
 
+
+    private final double manual_movement_speed = 1;
+    private final double dead_zone_right = 0.3;
+    private final double dead_zone_left = 0.3;
+
+    private final AngleSystem OpenCV_angles = new AngleSystem(0, false,true);
+    private final AngleSystem robot_angles = new AngleSystem(Math.PI/2,false);
 
 
     private OpenCvWebcam webcam;
@@ -118,25 +128,27 @@ public class LineApproachTester extends OpMode {
     public void loop() {
 
         double[] robotCenter = {pipeline.maskOutput().width()/2,pipeline.maskOutput().height()/2};
+        double[] targetPoint = {0,0};
+        if (pipeline.getLineCenter() != null) {
+            double[] lineCenter = {pipeline.getLineCenter().x, pipeline.maskOutput().height() - pipeline.getLineCenter().y};
+            targetPoint = AngleUtils.projectPoint(OpenCV_angles.toGlobal(pipeline.getLineAngle()), cm_ahead_prediction * pixels_per_cm, lineCenter);
+        }
 
-
-        double[] testProjection = AngleUtils.projectPoint(Math.PI/4,Math.sqrt(2)*10);
-        telemetry.addData("test point: ", testProjection[0] + ", " + testProjection[1]);
-
-        double[] targetPoint = AngleUtils.projectPoint(pipeline.getLineAngle()*Math.PI/180,cm_ahead_prediction*pixels_per_cm,AngleUtils.getPointPos(pipeline.getLineCenter()));
-
-
-        if (pipeline.getLineCenter() != null)
-            telemetry.addData("Line center: ",pipeline.getLineCenter().x + ", " + pipeline.getLineCenter().y);
 
         telemetry.addData("Stage: ", pipeline.stageToRenderToViewport);
 
         telemetry.addData("Target Point: ", targetPoint[0] + ", " + targetPoint[1]);
 
-        pipeline.addDisplayPoint(new Point(targetPoint[0],targetPoint[1]));
+        pipeline.addDisplayPoint(new Point(targetPoint[0],pipeline.maskOutput().height() - targetPoint[1]));
 
-        double targetAngle = (Math.PI*2 - AngleUtils.angleBetweenPoints(robotCenter,targetPoint))%(Math.PI*2) - Math.PI;
+        double targetAngle = (AngleUtils.angleBetweenPoints(robotCenter,targetPoint) + 3*Math.PI)%(Math.PI*2) - Math.PI;
         telemetry.addData("Target Angle: ", targetAngle);
+
+        double manual_slowdown = (speed_toggle ? 1 : 0)*(gamepad1.right_trigger < 0.1 ? (gamepad1.left_trigger < 0.1 ? 1 : 0.5) : 2);
+        if (!last_bumper && gamepad1.right_bumper){
+            speed_toggle = !speed_toggle;
+        }
+        last_bumper = gamepad1.right_bumper;
 
         if (gamepad1.a && !last_a){
             auto = !auto;
@@ -149,23 +161,22 @@ public class LineApproachTester extends OpMode {
             telemetry.addData("Distance to target: ", distance);
             if (distance > 20) {
 
-                double speed = (Math.abs(targetAngle) < max_turn_angle ? movement_speed : 0);
-                double steer = getSteer(targetAngle, steer_coeff);
+                double steer = Range.clip(targetAngle*line_steer_coeff,-1,1)* line_max_steer;
+                double maxSpeed = 1;
+                double speed = (Math.abs(targetAngle) < line_turn_angle ? line_speed : (Math.abs(targetAngle) > line_reverse_angle ? -line_speed : 0.05*-line_speed));
 
 
-                double idealSpeed = Math.min(1.0,distance/100)*auto_slowdown;
-
-                double leftSpeed = speed + steer;
+                double leftSpeed = speed  + steer;
                 double rightSpeed = speed - steer;
-
-                // Normalize speeds if either one exceeds +/- 1.0;
-                double max = Math.max(Math.abs(leftSpeed), Math.abs(rightSpeed));
-                if (max > idealSpeed) {
-                    leftSpeed = leftSpeed/(max)*idealSpeed;
-                    rightSpeed = rightSpeed/(max)*idealSpeed;
+                if (leftSpeed != 0 || rightSpeed != 0){
+                    double max = Math.max(Math.abs(leftSpeed), Math.abs(rightSpeed));
+                    if (max > maxSpeed) {
+                        leftSpeed = leftSpeed/(max)*maxSpeed;
+                        rightSpeed = rightSpeed/(max)*maxSpeed;
+                    }
                 }
-                double leftPower = -leftSpeed;
-                double rightPower = -rightSpeed;
+                double leftPower = auto_movement_speed*leftSpeed*manual_slowdown;
+                double rightPower = auto_movement_speed*rightSpeed*manual_slowdown;
                 FL.setPower(leftPower);
                 BL.setPower(leftPower);
                 FR.setPower(rightPower);
@@ -181,10 +192,10 @@ public class LineApproachTester extends OpMode {
             telemetry.addData("Right power: ",gamepad1.right_stick_y);
             double right_input = (Math.abs(gamepad1.right_stick_y) > dead_zone_right ? gamepad1.right_stick_y : 0);
             double left_input = (Math.abs(gamepad1.left_stick_y) > dead_zone_left ? gamepad1.left_stick_y : 0);
-            FR.setPower(right_input*movement_speed);
-            BR.setPower(right_input*movement_speed);
-            FL.setPower(left_input*movement_speed);
-            BL.setPower(left_input*movement_speed);
+            FR.setPower(right_input*manual_movement_speed*manual_slowdown);
+            BR.setPower(right_input*manual_movement_speed*manual_slowdown);
+            FL.setPower(left_input*manual_movement_speed*manual_slowdown);
+            BL.setPower(left_input*manual_movement_speed*manual_slowdown);
         }
 
 

@@ -50,6 +50,8 @@ public class NodeNavigateTester extends OpMode {
 
     //input stuff
     private boolean last_a = false;
+    private boolean speed_toggle = true;
+    private boolean last_bumper = false;
     private final double manual_movement_speed = 1;
     private final double dead_zone_right = 0.3;
     private final double dead_zone_left = 0.3;
@@ -228,8 +230,17 @@ public class NodeNavigateTester extends OpMode {
         double targetTest = gamepad1.left_stick_y;
         telemetry.addData("Closest Angle", test1[AngleUtils.nearestAngle(targetTest,test1)]);
 
+
+
         telemetry.addData("Trigger values","Left: " + gamepad1.left_trigger + ", Right: " + gamepad1.right_trigger);
-        double manual_slowdown = (gamepad1.right_trigger < 0.1 ? (gamepad1.left_trigger < 0.1 ? 1 : 0.5) : 2);
+        double manual_slowdown = (speed_toggle ? 1 : 0)*(gamepad1.right_trigger < 0.1 ? (gamepad1.left_trigger < 0.1 ? 1 : 0.5) : 2);
+        if (!last_bumper && gamepad1.right_bumper){
+            speed_toggle = !speed_toggle;
+        }
+        last_bumper = gamepad1.right_bumper;
+
+
+
         //check auto switching
         if (gamepad1.a && !last_a){
             auto = !auto;
