@@ -1,0 +1,16 @@
+
+SkyStone/.gradle/5.1.1/executionHistory/executionHistory.bin
+SkyStone/.gradle/5.1.1/executionHistory/executionHistory.lock
+SkyStone/.gradle/5.1.1/fileHashes/fileHashes.bin
+SkyStone/.gradle/5.1.1/fileHashes/fileHashes.lock
+SkyStone/.gradle/5.1.1/javaCompile/classAnalysis.bin
+SkyStone/.gradle/5.1.1/javaCompile/javaCompile.lock
+SkyStone/.gradle/buildOutputCleanup/buildOutputCleanup.lock
+SkyStone/.idea/workspace.xml
+SkyStone/TeamCode/build/intermediates/dex/debug/mergeDexDebug/out/classes.dex
+SkyStone/TeamCode/build/intermediates/incremental/packageDebug/tmp/debug/dex-renamer-state.txt
+SkyStone/TeamCode/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/org/firstinspires/ftc/teamcode/vision_tests/NodeNavigateTester.class
+SkyStone/TeamCode/build/intermediates/transforms/dexBuilder/debug/0/org/firstinspires/ftc/teamcode/vision_tests/NodeNavigateTester.dex
+SkyStone/TeamCode/build/outputs/apk/debug/TeamCode-debug.apk
+*.dex
+*.xml
