@@ -23,6 +23,8 @@ import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvPipeline;
 import org.openftc.easyopencv.OpenCvWebcam;
 
+import java.util.ArrayList;
+
 @TeleOp(name="navTest")
 public class NodeNavigateTester extends OpMode {
 
@@ -78,7 +80,7 @@ public class NodeNavigateTester extends OpMode {
     private final double found_node_parallel_threshold = 20;
 
     private final double pixels_per_cm = 1;
-    private final double cm_ahead_prediction = 250; //incorrect for now - pixels_per_inch should be measured before a real unit is used
+    private final double cm_ahead_prediction = 140; //incorrect for now - pixels_per_inch should be measured before a real unit is used
 
     //angle stuff
     private final AngleSystem OpenCV_angles = new AngleSystem(0, false,true);
@@ -112,11 +114,11 @@ public class NodeNavigateTester extends OpMode {
     private AutoMode currentMode = AutoMode.FOLLOW_LINE;
     private double lineApproxAngle = 0;
     private int nodeSeenCounter = 0;
-    private static final int nodeSeenThreshold = 4;
+    private static final int nodeSeenThreshold = 10;
 
     private int nodeNotSeenCounter = 0;
-    private static final int nodeNotSeenThreshold = 6;
-    private boolean from_node;
+    private static final int nodeNotSeenThreshold = 15;
+    private boolean from_node = false;
 
 
     @Override
@@ -200,9 +202,13 @@ public class NodeNavigateTester extends OpMode {
         if (getFollowedLineIndex() >= 0 && lineCenters.length > 0){
             p3 = lineCenters[getFollowedLineIndex()];
         }
+        ArrayList<Point> displayPoints = new ArrayList<Point>();
+        displayPoints.add(p1);
+        displayPoints.add(p2);
+        displayPoints.add(p3);
+        displayPoints.add(new Point(targetPoint[0],linePipeline.maskOutput().height()-targetPoint[1]));
 
-        Point[] displayPoints = {p1,p2,p3, new Point(targetPoint[0],linePipeline.maskOutput().height()-targetPoint[1])};
-        jointPipeline.setDisplayPoints(displayPoints,new Scalar(255,0,0));
+
 
 
         telemetry.addData("Test distance", AngleUtils.shortestAngleBetween(1.5707,1.588));
@@ -313,9 +319,12 @@ public class NodeNavigateTester extends OpMode {
 //                            linePoint = robotCenter;
 //                            telemetry.addData("error","prone");
 //                        }
-                        double perpDist = AngleUtils.perpendicularDistance(linePoint, robot_angles.toGlobal(lineApproxAngle)+currentOrientation.firstAngle, nodePos);
-                        double parDist = AngleUtils.parallelDistance(linePoint, robot_angles.toGlobal(lineApproxAngle)+currentOrientation.firstAngle, nodePos);
-                        telemetry.addData("distance inputs",arrayToString(linePoint) + ", " + robot_angles.toGlobal(lineApproxAngle)+currentOrientation.firstAngle + ", " + arrayToString(nodePos));
+                        double along_angle = robot_angles.toGlobal(lineApproxAngle) - currentOrientation.firstAngle;
+                        double perpDist = AngleUtils.perpendicularDistance(linePoint, along_angle, nodePos);
+                        double parDist = AngleUtils.parallelDistance(linePoint, along_angle, nodePos);
+                        double[] along_point = AngleUtils.projectPoint(along_angle,30,linePoint);
+                        displayPoints.add(new Point(along_point[0],nodePipeline.getFindNodeImageOutput().height()-along_point[1]));
+                        telemetry.addData("distance inputs",arrayToString(linePoint) + ", " + along_angle+ ", " + arrayToString(nodePos));
                         telemetry.addData("ParDist", parDist);
                         telemetry.addData("PerpDist", perpDist);
 
@@ -359,6 +368,22 @@ public class NodeNavigateTester extends OpMode {
                         telemetry.addData("Updated target angle",false);
                 }
             } else if (currentMode == AutoMode.ANGLES_FROM_NODE) {
+                if (nodeCenter != null)
+                {
+                    /*double[] nodePos = AngleUtils.getPointPos(nodeCenter);
+                    nodePos[1] = nodePipeline.getFindNodeImageOutput().height() - nodePos[1];
+                    int targetIndex = getFollowedLineIndex();
+                    double[] linePoint = AngleUtils.getPointPos(lineCenters[targetIndex]);
+                    linePoint[1] = linePipeline.maskOutput().height() - linePoint[1];
+                    double along_angle = robot_angles.toGlobal(lineApproxAngle) + (gamepad1.b ? (gamepad1.y ? -currentOrientation.firstAngle : currentOrientation.firstAngle) : 0);
+                    double perpDist = AngleUtils.perpendicularDistance(linePoint, along_angle, nodePos);
+                    double parDist = AngleUtils.parallelDistance(linePoint, along_angle, nodePos);
+                    double[] along_point = AngleUtils.projectPoint(along_angle,30,linePoint);
+                    displayPoints.add(new Point(along_point[0],nodePipeline.getFindNodeImageOutput().height()-along_point[1]));
+                    telemetry.addData("distance inputs",arrayToString(linePoint) + ", " + along_angle+ ", " + arrayToString(nodePos));
+                    telemetry.addData("ParDist", parDist);
+                    telemetry.addData("PerpDist", perpDist);*/
+                }
                 if (targetDistance < node_distance_threshold) {
                     if (lineAngles != null && lineAngles.length > 0) {
                         from_node = true;
@@ -370,6 +395,13 @@ public class NodeNavigateTester extends OpMode {
                 }
             }
         }
+
+
+        Point[] displayArray = new Point[displayPoints.size()];
+        for (int i = 0; i < displayArray.length; i++){
+            displayArray[i] = displayPoints.get(i);
+        }
+        jointPipeline.setDisplayPoints(displayArray,new Scalar(255,0,0));
 
 
         try{

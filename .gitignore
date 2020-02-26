@@ -16,3 +16,6 @@ SkyStone/TeamCode/build/outputs/apk/debug/TeamCode-debug.apk
 *.xml
 SkyStone/TeamCode/build/intermediates/incremental/packageDebug/tmp/debug/dex-renamer-state.txt
 SkyStone/.idea/workspace.xml
+*.class
+SkyStone/TeamCode/build/intermediates/incremental/packageDebug/tmp/debug/dex-renamer-state.txt
+SkyStone/TeamCode/build/intermediates/incremental/packageDebug/tmp/debug/file-input-save-data.txt
