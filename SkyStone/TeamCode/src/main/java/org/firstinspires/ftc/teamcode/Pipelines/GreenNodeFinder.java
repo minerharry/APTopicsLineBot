@@ -87,7 +87,7 @@ public class GreenNodeFinder extends OpenCvPipeline {
         Mat hsvThresholdInput = source0;
         double[] hsvThresholdHue = {64.74819912327278, 97.06484641638228};
         double[] hsvThresholdSaturation = {47.39208323278015, 255.0};
-        double[] hsvThresholdValue = {27.51798451804429, 210};
+        double[] hsvThresholdValue = {27.51798451804429, 240};
         hsvThreshold(hsvThresholdInput, hsvThresholdHue, hsvThresholdSaturation, hsvThresholdValue, hsvThresholdOutput);
 
         // Step Mask0:
