@@ -14,3 +14,5 @@ SkyStone/TeamCode/build/intermediates/transforms/dexBuilder/debug/0/org/firstins
 SkyStone/TeamCode/build/outputs/apk/debug/TeamCode-debug.apk
 *.dex
 *.xml
+SkyStone/TeamCode/build/intermediates/incremental/packageDebug/tmp/debug/dex-renamer-state.txt
+SkyStone/.idea/workspace.xml
