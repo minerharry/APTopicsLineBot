@@ -6,28 +6,16 @@ import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.openftc.easyopencv.OpenCvPipeline;
 
-public class JointPipeline extends OpenCvPipeline {
+public class JointPipeline extends BetterOpenCVPipeline {
 
-    private Point[] displayPoints = {};
     private OpenCvPipeline[] myPipelines;
     private int viewedPipeline;
     public int getViewedPipelineNum(){
         return viewedPipeline;
     }
     private boolean cyclePipelines;
-    private boolean drawDisplayPoints = false;
-    private Scalar displayColor = new Scalar(0,0,255);
 
-    public void setDisplayPoints(Point[] points){
-        drawDisplayPoints = true;
-        displayPoints = points;
-    }
 
-    public void setDisplayPoints(Point[] points, Scalar color){
-        drawDisplayPoints = true;
-        displayPoints = points;
-        displayColor = color;
-    }
 
     public JointPipeline(OpenCvPipeline[] pipelines) {
         myPipelines = pipelines;
@@ -41,7 +29,7 @@ public class JointPipeline extends OpenCvPipeline {
     }
 
     @Override
-    public Mat processFrame(Mat input) {
+    public Mat processImage(Mat input) {
         Mat copyMat = new Mat();
         Mat output = new Mat();
         for (int i = 0; i < myPipelines.length; i++){
@@ -53,11 +41,6 @@ public class JointPipeline extends OpenCvPipeline {
                 pipeline.processFrame(input);
         }
 
-        if (drawDisplayPoints){
-            for(Point point : displayPoints){
-                Imgproc.drawMarker(output,point,displayColor);
-            }
-        }
 
         return output;
 

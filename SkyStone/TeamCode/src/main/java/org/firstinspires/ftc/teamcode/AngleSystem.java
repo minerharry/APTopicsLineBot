@@ -33,4 +33,22 @@ public class AngleSystem{
     public double convertTo(double inAngle, AngleSystem target){
         return target.fromGlobal(toGlobal(inAngle));
     }
+
+
+    public double convertTo(double inAngle, AngleSystem target,boolean returnRads){
+        double result = target.fromGlobal(toGlobal(inAngle));
+        if (target.isDegrees)
+        {
+            if (!returnRads)
+                return result;
+            else
+                return result/180*Math.PI;
+        }
+        else{
+            if (returnRads)
+                return result;
+            else
+                return result/Math.PI*180;
+        }
+    }
 }

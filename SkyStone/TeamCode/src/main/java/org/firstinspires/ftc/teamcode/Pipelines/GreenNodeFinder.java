@@ -25,7 +25,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
  *
  * @author GRIP
  */
-public class GreenNodeFinder extends OpenCvPipeline {
+public class GreenNodeFinder extends BetterOpenCVPipeline {
 
     //Outputs
     private Mat hsvThresholdOutput = new Mat();
@@ -57,7 +57,7 @@ public class GreenNodeFinder extends OpenCvPipeline {
     public  GreenNodeFinder(){}
 
     @Override
-    public Mat processFrame(Mat input) {
+    public Mat processImage(Mat input) {
         outputTelemetry("Stage: ", stageToRenderToViewport.name());
         return process(input);
     }
@@ -203,7 +203,7 @@ public class GreenNodeFinder extends OpenCvPipeline {
             }
         }
 
-        System.out.println("Convex hulls: " + convexHullsOutput);
+        //System.out.println("Convex hulls: " + convexHullsOutput);
 
 
 
@@ -222,7 +222,7 @@ public class GreenNodeFinder extends OpenCvPipeline {
                 return outputMat;
             case CONVEX_HULLS:
                 outputTelemetry("Convex hulls: ", ""+convexHullsOutput);
-                System.out.println(convexHullsOutput);
+                //System.out.println(convexHullsOutput);
                 Imgproc.drawContours(outputMat,convexHullsOutput,-1,new Scalar(0,0,255));
                 return outputMat;
             case HSV_THRESHOLD:

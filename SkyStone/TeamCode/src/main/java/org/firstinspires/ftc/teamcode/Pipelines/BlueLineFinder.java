@@ -25,7 +25,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
  *
  * @author GRIP
  */
-public class BlueLineFinder extends OpenCvPipeline {
+public class BlueLineFinder extends BetterOpenCVPipeline {
 
 
     private double[] hsvThresholdHue = new double[]{98.21167173282997, 119.51597296375203};
@@ -61,7 +61,6 @@ public class BlueLineFinder extends OpenCvPipeline {
     private int numRects;
     private Point lineCenter = null;
     private Point[] lineCenters = {};
-    private Point displayPoint;
 
 
     public BlueLineFinder(){
@@ -83,12 +82,9 @@ public class BlueLineFinder extends OpenCvPipeline {
         return numRects;
     }
 
-    public void addDisplayPoint(Point newPoint) {
-        displayPoint = newPoint;
-    }
 
     @Override
-    public Mat processFrame(Mat in) {
+    public Mat processImage(Mat in) {
 
             process(in);
             ArrayList<MatOfPoint> contours = filterContoursOutput();
@@ -197,10 +193,6 @@ public class BlueLineFinder extends OpenCvPipeline {
                 }
             }
             numRects = (int)out.size().width;
-
-            if (displayPoint != null) {
-                Imgproc.drawMarker(out,displayPoint,new Scalar(0,69,255));
-            }
 
             return out;
 
@@ -313,7 +305,7 @@ public class BlueLineFinder extends OpenCvPipeline {
      */
     private void hsvThreshold(Mat input, double[] hue, double[] sat, double[] val,
                               Mat out) {
-        System.out.println(input.type());
+        //System.out.println(input.type());
 
         Imgproc.cvtColor(input, out, Imgproc.COLOR_RGB2HSV);
         Mat copy = new Mat();

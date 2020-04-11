@@ -1,10 +1,23 @@
 package org.firstinspires.ftc.teamcode;
 
-class RobotLocation {
+import com.qualcomm.robotcore.robot.Robot;
+
+public class RobotLocation {
     private double[] pos = {0,0};
     private double rot = 0;
     public RobotLocation(){
 
+    }
+
+    public RobotLocation(double[] inPos, double inAngle){
+        pos = inPos;
+        rot = inAngle;
+    }
+
+    public void add(RobotLocation other){
+        pos[0] += other.pos[0];
+        pos[1] += other.pos[1];
+        rot = AngleUtils.wrapSign(rot + other.rot);
     }
 
     public double getRot() {
