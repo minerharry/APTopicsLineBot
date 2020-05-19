@@ -32,4 +32,9 @@ public class BlankPipeline extends BetterOpenCVPipeline {
         return out;
     }
 
+    @Override
+    public String getDisplayedStageName() {
+        return "Blank pipeline, " + (useInputMat ? "basic input rendered" : backgroundColor + " background rendered");
+    }
+
 }

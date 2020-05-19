@@ -15,6 +15,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.teamcode.AngleUtils;
+import org.firstinspires.ftc.teamcode.Pipelines.BetterOpenCVPipeline;
 import org.firstinspires.ftc.teamcode.Pipelines.BlueLineFinder;
 import org.firstinspires.ftc.teamcode.Pipelines.GreenNodeFinder;
 import org.firstinspires.ftc.teamcode.Pipelines.JointPipeline;
@@ -121,7 +122,7 @@ public class NodeSpinTester extends OpMode {
          */
         nodePipeline = new GreenNodeFinder();
         linePipeline = new BlueLineFinder();
-        OpenCvPipeline[] pipelines = {nodePipeline,linePipeline};
+        BetterOpenCVPipeline[] pipelines = {nodePipeline,linePipeline};
         jointPipeline = new JointPipeline(pipelines);
         webcam.setPipeline(jointPipeline);
 

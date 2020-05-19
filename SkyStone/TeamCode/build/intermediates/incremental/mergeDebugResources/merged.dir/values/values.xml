@@ -184,6 +184,7 @@
     <color name="text_toast">@color/text_white</color>
     <color name="text_warning">#ff8000</color>
     <color name="text_white">#FFFFFFFF</color>
+    <color name="tunerStatusBlue">#1147ce</color>
     <color name="very_dark_blue">#06023f</color>
     <color name="very_dark_green">#024002</color>
     <color name="very_dark_orange">#401d02</color>
@@ -1108,6 +1109,11 @@
     <style name="TextAppearance.Compat.Notification.Title" parent="@android:style/TextAppearance.StatusBar.EventContent.Title"/>
     <style name="Widget.Compat.NotificationActionContainer" parent=""/>
     <style name="Widget.Compat.NotificationActionText" parent=""/>
+    <style name="tunerStatusStyle" parent="android:Widget.TextView">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textColor">@color/tunerStatusBlue</item>
+        <item name="android:textStyle">bold</item>
+    </style>
     <declare-styleable name="CameraBridgeViewBase"><attr format="boolean" name="show_fps"/><attr format="integer" name="camera_id">
           <enum name="any" value="-1"/>
           <enum name="back" value="99"/>

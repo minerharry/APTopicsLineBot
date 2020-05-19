@@ -117,6 +117,7 @@ color text_okay
 color text_toast
 color text_warning
 color text_white
+color tunerStatusBlue
 color very_dark_blue
 color very_dark_green
 color very_dark_orange
@@ -1188,6 +1189,7 @@ style TextAppearance_Compat_Notification_Time
 style TextAppearance_Compat_Notification_Title
 style Widget_Compat_NotificationActionContainer
 style Widget_Compat_NotificationActionText
+style tunerStatusStyle
 styleable CameraBridgeViewBase camera_id show_fps
 styleable ColorListPreference colors
 styleable ColorStateListItem android_color android_alpha alpha

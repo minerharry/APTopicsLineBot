@@ -389,18 +389,19 @@ public final class R {
     public static final int text_toast=0x7f030043;
     public static final int text_warning=0x7f030044;
     public static final int text_white=0x7f030045;
-    public static final int very_dark_blue=0x7f030046;
-    public static final int very_dark_green=0x7f030047;
-    public static final int very_dark_orange=0x7f030048;
-    public static final int very_dark_purple=0x7f030049;
-    public static final int very_dark_red=0x7f03004a;
-    public static final int very_dark_teal=0x7f03004b;
-    public static final int very_very_dark_blue=0x7f03004c;
-    public static final int very_very_dark_green=0x7f03004d;
-    public static final int very_very_dark_orange=0x7f03004e;
-    public static final int very_very_dark_purple=0x7f03004f;
-    public static final int very_very_dark_red=0x7f030050;
-    public static final int very_very_dark_teal=0x7f030051;
+    public static final int tunerStatusBlue=0x7f030046;
+    public static final int very_dark_blue=0x7f030047;
+    public static final int very_dark_green=0x7f030048;
+    public static final int very_dark_orange=0x7f030049;
+    public static final int very_dark_purple=0x7f03004a;
+    public static final int very_dark_red=0x7f03004b;
+    public static final int very_dark_teal=0x7f03004c;
+    public static final int very_very_dark_blue=0x7f03004d;
+    public static final int very_very_dark_green=0x7f03004e;
+    public static final int very_very_dark_orange=0x7f03004f;
+    public static final int very_very_dark_purple=0x7f030050;
+    public static final int very_very_dark_red=0x7f030051;
+    public static final int very_very_dark_teal=0x7f030052;
   }
   public static final class dimen {
     public static final int activity_horizontal_margin=0x7f040000;
@@ -1478,6 +1479,7 @@ public final class R {
     public static final int TextAppearance_Compat_Notification_Title=0x7f0c0019;
     public static final int Widget_Compat_NotificationActionContainer=0x7f0c001a;
     public static final int Widget_Compat_NotificationActionText=0x7f0c001b;
+    public static final int tunerStatusStyle=0x7f0c001c;
   }
   public static final class styleable {
     /**

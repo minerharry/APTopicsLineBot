@@ -17,10 +17,13 @@ import org.firstinspires.ftc.teamcode.AngleUtils;
 import org.firstinspires.ftc.teamcode.Mapping.Branch;
 import org.firstinspires.ftc.teamcode.Mapping.NBMap;
 import org.firstinspires.ftc.teamcode.Mapping.Node;
+import org.firstinspires.ftc.teamcode.Pipelines.BetterOpenCVPipeline;
 import org.firstinspires.ftc.teamcode.Pipelines.BlueLineFinder;
 import org.firstinspires.ftc.teamcode.Pipelines.DisplayElement;
 import org.firstinspires.ftc.teamcode.Pipelines.GreenNodeFinder;
 import org.firstinspires.ftc.teamcode.Pipelines.JointPipeline;
+import org.firstinspires.ftc.teamcode.Replay.ReplayMappingInformation;
+import org.firstinspires.ftc.teamcode.Replay.ReplayTickInformation;
 import org.firstinspires.ftc.teamcode.RobotLocation;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
@@ -29,7 +32,6 @@ import org.openftc.easyopencv.OpenCvPipeline;
 import org.openftc.easyopencv.OpenCvWebcam;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Stack;
 
 @TeleOp(name="Navigation Mapping Test")
@@ -41,7 +43,7 @@ public class NavigateMappingTester extends OpMode {
     private static final double WHEEL_RADIUS =  4; //in cm: should be in same units as wheel distance
     private static final double UNITS_PER_TICK = WHEEL_RADIUS/TICKS_PER_ROTATION*Math.PI*2;
 
-    /** Locations **/
+    /** Position Approximation Stuff **/
     private RobotLocation myLocation = new RobotLocation();
     private RobotLocation simLocation = new RobotLocation();
     private RobotLocation gyroLeftLocation = new RobotLocation();
@@ -49,6 +51,15 @@ public class NavigateMappingTester extends OpMode {
 
     private double leftLastPos;
     private double rightLastPos;
+
+
+    private final double errorPerUnitDistance = 0.1;
+    private double predictedPositionError = 0; //Should only ever increase
+
+    private double distanceTraveled = 0;
+
+    private int tickCounter = 0;
+
 
     /**Mapping**/
     private NBMap map;
@@ -91,25 +102,25 @@ public class NavigateMappingTester extends OpMode {
     private final double auto_movement_speed = 0.5;
 
     private final double line_speed = 0.35;
-    private final double line_steer_coeff = 0.5; //how quickly it goes from min steer to max steer based on angle
-    private final double line_max_steer = 1.2; //maximum steer that will be applied
+    private final double line_steer_coeff = 0.4; //how quickly it goes from min steer to max steer based on angle
+    private final double line_max_steer = 2; //maximum steer that will be applied
     private final double line_turn_angle = 1*Math.PI/4;
     private final double line_reverse_angle = 4*Math.PI/5;
 
     private final double line_angle_error_threshold = Math.PI/10;
 
-    private final double node_speed = 0.25;
-    private final double node_steer_coeff = 0.5; //how quickly it goes from min steer to max steer based on angle
+    private final double node_speed = 0.18;
+    private final double node_steer_coeff = 0.4; //how quickly it goes from min steer to max steer based on angle
     private final double node_max_steer = 0.6; //maximum steer that will be applied
     private final double node_forward_angle = 2*Math.PI/5;
     private final double node_reverse_angle = 3*Math.PI/5;
-    private final double node_distance_threshold = 15; //how close it must get to the node to be considered 'on' the node
+    private final double node_distance_threshold = 12; //how close it must get to the node to be considered 'on' the node
 
     private final double found_node_perpendicular_threshold = 50; //in pixels
     private final double found_node_parallel_threshold = 20;
 
-    private final double pixels_per_cm = 1;
-    private final double cm_ahead_prediction = 140; //incorrect for now - pixels_per_inch should be measured before a real unit is used
+    private final double pixels_per_cm = 240/11.1;
+    private final double cm_ahead_prediction = 7;
 
     //angle system stuff
     private final AngleSystem OpenCV_angles = new AngleSystem(0, false,true);
@@ -153,7 +164,7 @@ public class NavigateMappingTester extends OpMode {
 
     private ArrayList<DisplayElement> displayElements = new ArrayList<>();
 
-    private double displaySize = 250;
+    private double displaySize = 220;
     private double mapSize = 150;
 
 
@@ -203,19 +214,21 @@ public class NavigateMappingTester extends OpMode {
          */
         nodePipeline = new GreenNodeFinder();
         linePipeline = new BlueLineFinder();
-        OpenCvPipeline[] pipelines = {nodePipeline,linePipeline};
-        jointPipeline = new JointPipeline(pipelines);
+        BetterOpenCVPipeline[] pipelines = {nodePipeline,linePipeline};
+        jointPipeline = new JointPipeline(pipelines,1);
         webcam.setPipeline(jointPipeline);
 
         webcam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
 
         map = new NBMap();
-
+        System.out.println("Starting Replay");
 
     }
 
     @Override
     public void loop(){
+        telemetry.addData("Currently Rendered image",jointPipeline.getDisplayedStageName());
+
         lineAngles = linePipeline.getLineAngles();
         lineCenters = linePipeline.getLineCenters();
         nodeCenter = nodePipeline.getFindNodeCenter();
@@ -313,14 +326,14 @@ public class NavigateMappingTester extends OpMode {
                         perpDist = AngleUtils.perpendicularDistance(robotCenter, lineAngle, targetPoint);
                         going_away = (perpDist < 0 == (AngleUtils.wrapSign(robot_angles.fromGlobal(lineAngle)) < 0));
                         telemetry.addData("Going away line angle", lineAngle);
+                        telemetry.addData("robot going away line angle",AngleUtils.wrapSign(robot_angles.fromGlobal(lineAngle)));
                         telemetry.addData("Going away perp dist", perpDist);
                         telemetry.addData("Going away", going_away);
                     }
 
                     steer = Range.clip(targetAngle*line_steer_coeff,-1,1)* line_max_steer;
                     maxSpeed = 1;
-                    speed = (Math.abs(targetAngle) < line_turn_angle ? line_speed : (Math.abs(targetAngle) > line_reverse_angle ? -line_speed : 0.05*-line_speed));
-                    speed *= (going_away ? 30/Math.max(Math.abs(perpDist),30): 1);
+                    speed = (going_away ? 35/Math.max(Math.abs(perpDist),35): 1)*(Math.abs(targetAngle) < line_turn_angle ? line_speed : (Math.abs(targetAngle) > line_reverse_angle ? -0.3*line_speed : 0.05*-line_speed));
                     break;
                 case ANGLES_FROM_NODE:
                     maxSpeed = Math.min(targetDistance/40,1);
@@ -337,6 +350,10 @@ public class NavigateMappingTester extends OpMode {
                         steer = 0;
                     }
                     break;
+            }
+            if (nodeCenter != null){
+                speed *= 0.74;
+                steer *= 0.8;
             }
             double leftSpeed = speed  + steer;
             double rightSpeed = speed - steer;
@@ -418,7 +435,8 @@ public class NavigateMappingTester extends OpMode {
                             from_node = false;
                         }
                     }
-                    if (Math.abs(getFollowedLineError()) < line_angle_error_threshold) {
+                    int index = getFollowedLineIndex();
+                    if (Math.abs(getFollowedLineError()) < line_angle_error_threshold && AngleUtils.distance(AngleUtils.getPointPos(lineCenters[index]),robotCenter)<(linePipeline.maskOutput().height()/2)) {
                         lineApproxAngle = robot_angles.fromGlobal(getFollowedLineAngle());
                         telemetry.addData("Updated target angle",true);
                     }
@@ -447,60 +465,85 @@ public class NavigateMappingTester extends OpMode {
                         from_node = true;
                         nodeNotSeenCounter = 0;
                         double[] angles = getShiftedLineAngles(true);
+                        String navStatus = "";
+                        Branch prevBranch = nextBranch;
+                        Node tempNode;
                         if (nextBranch == null || nextBranch.getIsStub()){
                             if (nextBranch != null){
-
-                                System.out.println("Navigation Status: Successfully followed stub");
-
+                                navStatus = "Successfully followed stub. ";
                             }
-                            double endAngle = (robot_angles.toGlobal(lineApproxAngle) - currentOrientation.firstAngle)%(2*Math.PI);
+                            double endAngle = (robot_angles.toGlobal(lineApproxAngle))%(2*Math.PI);
                             System.out.println("End angle: " + endAngle);
-                            int currentAngleIndex = AngleUtils.nearestAngle(endAngle,angles);
+                            int currentAngleIndex = AngleUtils.nearestAngle(endAngle + Math.PI,angles);
                             double[] otherAngles = new double[angles.length-1];
                             int j = 0;
                             for (int i = 0; i < angles.length; i++){
                                 if (i != currentAngleIndex)
+                                {
                                     otherAngles[j] = angles[i];
-                            }
+                                    j++;
+                                }
 
-                            lastNode = (nextBranch != null ?
-                                    map.createNode(nextBranch,(endAngle + Math.PI)%(Math.PI*2),myLocation.getPos(),otherAngles):
-                                    new Node(myLocation.getPos(),angles));
-                            map.insertNode(lastNode);
-                            System.out.println("Navigation Status: Calculating path to new stub...");
-                            navPath = map.pathToNearestStub(lastNode);
+                            }
+                            tempNode = (nextBranch != null ?
+                                    map.createNode(nextBranch,(endAngle)%(Math.PI*2),myLocation.getPos(),otherAngles,predictedPositionError) :
+                                    new Node(myLocation.getPos(),angles,predictedPositionError));
+                            lastNode = map.insertNode(tempNode);
+                            navStatus += "Calculating path to new stub...";
+                            if (map.getStubs().size() != 0)
+                                navPath = map.pathToNearestStub(lastNode);
+                            else
+                                navPath = map.getRoute(lastNode,map.getRandomExcludedNode(lastNode));
+
                             if (navPath == null){
                                 telemetry.addData("Explored","All stubs");
                                 System.out.println("***** Explored all stubs *****");
                                 System.out.println("Map: " + map);
                                 System.out.println("Current Node: " + lastNode);
                                 System.out.println("Next Branch: " + nextBranch);
+                                mapped = true;
                                 auto = false;
                             }
 
                         }
                         else{
                             Node ideal_next = nextBranch.getEnd();
-                            if (lastNode.isEqual(nextBranch.getEnd()))
+                            if (lastNode.equals(nextBranch.getEnd()))
                                 ideal_next = nextBranch.getStart();
-                            Node temp_node = new Node(myLocation.getPos(),angles);
-                            if (ideal_next.isMergeable(temp_node)){
-                                ideal_next.merge(temp_node);
+                            tempNode = new Node(myLocation.getPos(),angles,predictedPositionError);
+                            if (ideal_next.isMergeable(tempNode)){
+                                ideal_next.merge(tempNode);
                                 lastNode = ideal_next;
-                                System.out.println("Navigation Status: Followed line to correct node, continuing  navigation");
+                                navStatus = "Followed line to correct node, continuing navigation. ";
                             }
                             else{
-                                lastNode = map.locateNode(temp_node);
-                                lastNode.merge(temp_node);
-                                navPath = map.pathToNearestStub(lastNode);
-                                System.out.println("Navigation Status: Followed line to incorrect node, recalculating...");
+                                lastNode = map.locateNode(tempNode,true);
+                                lastNode.merge(tempNode);
+                                if (map.getStubs().size() != 0)
+                                    navPath = map.pathToNearestStub(lastNode);
+                                else
+                                    navPath = map.getRoute(lastNode,map.getRandomExcludedNode(lastNode));
+                                navStatus = "Followed line to incorrect node, recalculating... ";
+                            }
+                            if (navPath.size() == 0){
+                                if (map.getStubs().size() != 0)
+                                    navPath = map.pathToNearestStub(lastNode);
+                                else
+                                    navPath = map.getRoute(lastNode,map.getRandomExcludedNode(lastNode));
+                                navStatus = "Followed path to correct destination. Pathing to new node...";
                             }
                         }
+                        System.out.println("Navigation Status: " + navStatus);
+
+
+                        double next_angle = 0;
                         if (auto) {
                             nextBranch = navPath.pop();
-                            double next_angle = nextBranch.getStartAngle();
-                            if (!nextBranch.getIsStub() && nextBranch.getEnd().isEqual(lastNode)) {
-                                next_angle = (nextBranch.getEndAngle() + Math.PI) % (2 * Math.PI);
+                            Branch associatedBranch = Node.associateBranches(lastNode,tempNode).get(nextBranch);
+
+                            next_angle = associatedBranch.getStartAngle();
+                            if (!associatedBranch.getIsStub() && associatedBranch.getEnd().equals(lastNode)) {
+                                next_angle = (associatedBranch.getEndAngle() + Math.PI) % (2 * Math.PI);
                             }
 
                             telemetry.addData("Branch angle", next_angle);
@@ -513,14 +556,22 @@ public class NavigateMappingTester extends OpMode {
 
 
                             targetAngle = angles[AngleUtils.nearestAngle(next_angle, angles)];
-                            System.out.println("Chosen target angle: " + next_angle);
+                            System.out.println("Chosen target angle: " + targetAngle);
 
                             lineApproxAngle = robot_angles.fromGlobal(targetAngle);
                             currentMode = AutoMode.FOLLOW_LINE;
                         }
+                        //Log replay
+                        ReplayMappingInformation mapInfo = new ReplayMappingInformation(time,map,prevBranch,nextBranch,lastNode,navPath,navStatus,next_angle);
+                        System.out.println("Logging Replay Data: " + mapInfo.getSerialString() + "--End Replay Data Log");
+
                     }
                 }
             }
+        }
+
+        for (Point p : lineCenters){
+            displayElements.add(new DisplayElement((p),new Scalar(0,255,0)));
         }
 
 
@@ -547,11 +598,16 @@ public class NavigateMappingTester extends OpMode {
 
 
     public void updatePosition(){
+        double[] lastPosition = myLocation.getPos();
         //updatePosition(myLocation);
         updatePosition(gyroLeftLocation, true);
         updatePosition(gyroRightLocation, false);
         myLocation.setRot(gyroLeftLocation.getRot());
         myLocation.setPos(AngleUtils.pointBetween(gyroLeftLocation.getPos(),gyroRightLocation.getPos()));
+
+        double tickDistance = AngleUtils.distance(lastPosition,myLocation.getPos());
+        distanceTraveled += tickDistance;
+        predictedPositionError += tickDistance * errorPerUnitDistance;
 
         //averageGyroLocation.setRot(gyroLeftLocation.getRot());
         //averageGyroLocation.setPos(AngleUtils.pointBetween(gyroLeftLocation.getPos(),gyroRightLocation.getPos()));
@@ -567,7 +623,7 @@ public class NavigateMappingTester extends OpMode {
             double[] startPos = getApproxDisplayPos(b.getStart().getApproxPos());
             if (b.getIsStub()){
                 displayElements.add(
-                        new DisplayElement(new Point(startPos),OpenCV_angles.fromGlobal(b.getStartAngle()),3,new Scalar(0,0,255))
+                        new DisplayElement(new Point(startPos),OpenCV_angles.fromGlobal(b.getStartAngle()),3,new Scalar(255,0,255))
                 );
             }
             else{
@@ -578,6 +634,34 @@ public class NavigateMappingTester extends OpMode {
             }
         }
 
+        tickCounter++;
+        tickCounter %= (currentMode == AutoMode.FOLLOW_LINE ? 5 : 2);
+        if (tickCounter == 0) {
+            double[] robotCenter = {linePipeline.maskOutput().width()/2,linePipeline.maskOutput().height()/2};
+            double[][] centers = new double[lineAngles.length][2];
+            double[] angles = new double[lineAngles.length];
+            if (nodeCenter != null)
+                angles = getShiftedLineAngles(true);
+            for (int i = 0; i < centers.length; i++){
+                Point center = lineCenters[i];
+                double[] pos = {(center.x - robotCenter[0]),(robotCenter[1]-center.y)};
+                centers[i] = pos;
+                if (nodeCenter == null)
+                    angles[i] = OpenCV_angles.toGlobal(lineAngles[i]) + currentOrientation.firstAngle;
+            }
+
+            double[] center = null;
+            if (nodeCenter != null){
+                center = new double[2];
+                center[0] = (nodeCenter.x - robotCenter[0]);
+                center[1] = (robotCenter[1]-nodeCenter.y);
+            }
+            int index = (lineAngles.length == 0 ? -1 : getFollowedLineIndex());
+            ReplayTickInformation tickInfo = new ReplayTickInformation(time,myLocation,predictedPositionError,currentMode == AutoMode.FOLLOW_LINE,
+                    centers,angles,linePipeline.getLineLengths(),robot_angles.toGlobal(lineApproxAngle),
+                    index,(lineAngles.length == 0 ? false : getFollowedLineError() < line_angle_error_threshold),center);
+            System.out.println("Logging Replay Data: " + tickInfo.getSerialString() + "--End Replay Data Log");
+        }
         telemetry.addData("Position Display",el);
         leftLastPos = getLeftEncoderAvg();
         rightLastPos = getRightEncoderAvg();
@@ -696,6 +780,7 @@ public class NavigateMappingTester extends OpMode {
     }
 
     //if not useNode, will return a list that is twice as long, with each pair 2i and 2i+1 being 180 degrees of each other
+    //returns global, gyro-shifted angles
     private double[] getShiftedLineAngles(boolean useNode){
         double[] shiftedAngles = new double[lineAngles.length];
         if (useNode) {
@@ -718,7 +803,7 @@ public class NavigateMappingTester extends OpMode {
         return  shiftedAngles;
     }
 
-    //returns in global angles
+    //returns in global gyro-shifted angles
     private double getFollowedLineAngle() {
         double targetAngle = robot_angles.toGlobal(lineApproxAngle);
         double[] shiftedAngles = getShiftedLineAngles(nodeCenter != null);
@@ -726,6 +811,7 @@ public class NavigateMappingTester extends OpMode {
         return shiftedAngles[AngleUtils.nearestAngle(targetAngle + nodeDirectionInvert,shiftedAngles)] - nodeDirectionInvert;
     }
 
+    //returns in global gyro-shifted angles
     private double getFollowedLineAngle(boolean nodeOverride) {
         double targetAngle = robot_angles.toGlobal(lineApproxAngle);
         double[] shiftedAngles = getShiftedLineAngles(nodeOverride);

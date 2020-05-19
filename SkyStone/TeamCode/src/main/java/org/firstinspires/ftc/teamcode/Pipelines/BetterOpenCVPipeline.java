@@ -27,7 +27,7 @@ public abstract class BetterOpenCVPipeline extends OpenCvPipeline {
         Mat out = new Mat();
         in.copyTo(out);
 
-        processImage(out);
+        out = processImage(out);
 
         for (DisplayElement element : myElements)
         {
@@ -38,6 +38,9 @@ public abstract class BetterOpenCVPipeline extends OpenCvPipeline {
     }
 
     private void drawElement(Mat mat, DisplayElement element){
+        if (element == null)
+            return;
+
         switch (element.myType){
             case POINT:
                 Imgproc.drawMarker(mat,element.myPoints[0],element.myColor,0,element.mySize);
@@ -52,6 +55,10 @@ public abstract class BetterOpenCVPipeline extends OpenCvPipeline {
         }
     }
 
+    /*
+    String should include both name of pipeline and descriptive name of what is being displayed
+     */
+    public abstract String getDisplayedStageName();
 
 
 }

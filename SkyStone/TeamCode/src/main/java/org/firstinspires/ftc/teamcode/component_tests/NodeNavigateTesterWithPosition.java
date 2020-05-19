@@ -9,6 +9,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.Range;
 
+import net.frogbots.ftcopmodetunercommon.opmode.TunableOpMode;
+
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
@@ -16,6 +18,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.teamcode.AngleSystem;
 import org.firstinspires.ftc.teamcode.AngleUtils;
+import org.firstinspires.ftc.teamcode.Pipelines.BetterOpenCVPipeline;
 import org.firstinspires.ftc.teamcode.Pipelines.BlueLineFinder;
 import org.firstinspires.ftc.teamcode.Pipelines.DisplayElement;
 import org.firstinspires.ftc.teamcode.Pipelines.GreenNodeFinder;
@@ -30,7 +33,7 @@ import org.openftc.easyopencv.OpenCvWebcam;
 import java.util.ArrayList;
 
 @TeleOp(name="Navigation Position Test")
-public class NodeNavigateTesterWithPosition extends OpMode {
+public class NodeNavigateTesterWithPosition extends TunableOpMode {
 
     //Position stuff
     private static final double WHEEL_DISTANCE = 29.4; //in cm: should be in same units as wheel diameter
@@ -81,8 +84,8 @@ public class NodeNavigateTesterWithPosition extends OpMode {
     private final double auto_movement_speed = 0.5;
 
     private final double line_speed = 0.35;
-    private final double line_steer_coeff = 0.5; //how quickly it goes from min steer to max steer based on angle
-    private final double line_max_steer = 1.2; //maximum steer that will be applied
+    private final double line_steer_coeff = 0.4; //how quickly it goes from min steer to max steer based on angle
+    private final double line_max_steer = 2; //maximum steer that will be applied
     private final double line_turn_angle = 1*Math.PI/4;
     private final double line_reverse_angle = 4*Math.PI/5;
 
@@ -143,6 +146,7 @@ public class NodeNavigateTesterWithPosition extends OpMode {
 
     private double displaySize = 250;
     private double mapSize = 50;
+    private double screenHeight;
 
 
     @Override
@@ -191,7 +195,7 @@ public class NodeNavigateTesterWithPosition extends OpMode {
          */
         nodePipeline = new GreenNodeFinder();
         linePipeline = new BlueLineFinder();
-        OpenCvPipeline[] pipelines = {nodePipeline,linePipeline};
+        BetterOpenCVPipeline[] pipelines = {nodePipeline,linePipeline};
         jointPipeline = new JointPipeline(pipelines);
         webcam.setPipeline(jointPipeline);
 
@@ -216,9 +220,9 @@ public class NodeNavigateTesterWithPosition extends OpMode {
         //update current position
         updatePosition();
 
-
+        screenHeight = linePipeline.maskOutput().height();
         double[] targetPoint = getTargetPoint();
-        double[] robotCenter = {linePipeline.maskOutput().width()/2,linePipeline.maskOutput().height()/2}; //would need to invert y, but exactly halfway in the image, so not needed
+        double[] robotCenter = {linePipeline.maskOutput().width()/2,screenHeight/2}; //would need to invert y, but exactly halfway in the image, so not needed
         double targetAngle =AngleUtils.wrapSign(robot_angles.fromGlobal(AngleUtils.angleBetweenPoints(robotCenter,targetPoint)));
         double targetDistance = AngleUtils.distance(targetPoint,robotCenter);
 
@@ -234,7 +238,7 @@ public class NodeNavigateTesterWithPosition extends OpMode {
         displayElements.add(new DisplayElement(p1,color));
         displayElements.add(new DisplayElement(p1,opencvAngle,10,color));
         displayElements.add(new DisplayElement(p3,color));
-        displayElements.add(new DisplayElement(new Point(targetPoint[0],linePipeline.maskOutput().height()-targetPoint[1]),color));
+        displayElements.add(new DisplayElement(new Point(targetPoint[0],screenHeight-targetPoint[1]),color));
 
 
 
@@ -293,17 +297,19 @@ public class NodeNavigateTesterWithPosition extends OpMode {
                 case FOLLOW_LINE:
                     boolean going_away = false;
                     double perpDist = 100;
-                    if (lineAngles != null && lineAngles.length > 0 && getFollowedLineError()<line_angle_error_threshold ) {                        double lineAngle = getFollowedLineAngle() - currentOrientation.firstAngle;
+                    if (lineAngles != null && lineAngles.length > 0 && getFollowedLineError()<line_angle_error_threshold ) {
+                        double lineAngle = getFollowedLineAngle() - currentOrientation.firstAngle;
                         perpDist = AngleUtils.perpendicularDistance(robotCenter, lineAngle, targetPoint);
                         going_away = (perpDist < 0 == (AngleUtils.wrapSign(robot_angles.fromGlobal(lineAngle)) < 0));
                         telemetry.addData("Going away line angle", lineAngle);
+                        telemetry.addData("robot going away line angle",AngleUtils.wrapSign(robot_angles.fromGlobal(lineAngle)));
                         telemetry.addData("Going away perp dist", perpDist);
                         telemetry.addData("Going away", going_away);
                     }
 
                     steer = Range.clip(targetAngle*line_steer_coeff,-1,1)* line_max_steer;
-                    maxSpeed = (going_away ? 30/Math.max(Math.abs(perpDist),30): 1);
-                    speed = (Math.abs(targetAngle) < line_turn_angle ? line_speed : (Math.abs(targetAngle) > line_reverse_angle ? -line_speed : 0.05*-line_speed));
+                    maxSpeed = 1;
+                    speed = (going_away ? 20/Math.max(Math.abs(perpDist),20): 1)*(Math.abs(targetAngle) < line_turn_angle ? line_speed : (Math.abs(targetAngle) > line_reverse_angle ? -0.3*line_speed : 0.05*-line_speed));
                     break;
                 case ANGLES_FROM_NODE:
                     maxSpeed = Math.min(targetDistance/40,1);
@@ -321,6 +327,8 @@ public class NodeNavigateTesterWithPosition extends OpMode {
                     }
                     break;
             }
+            telemetry.addData("speed",speed);
+            telemetry.addData("steer",steer);
             double leftSpeed = speed  + steer;
             double rightSpeed = speed - steer;
             if (leftSpeed != 0 || rightSpeed != 0){
@@ -352,7 +360,7 @@ public class NodeNavigateTesterWithPosition extends OpMode {
                         nodePos[1] = nodePipeline.getFindNodeImageOutput().height() - nodePos[1];
                         int targetIndex = getFollowedLineIndex();
                         double[] linePoint = AngleUtils.getPointPos(lineCenters[targetIndex]);
-                        linePoint[1] = linePipeline.maskOutput().height() - linePoint[1];
+                        linePoint[1] = screenHeight - linePoint[1];
 //                        if (Math.abs(getFollowedLineError(false)) > line_angle_error_threshold) {
 //                            linePoint = robotCenter;
 //                            telemetry.addData("error","prone");
@@ -398,7 +406,8 @@ public class NodeNavigateTesterWithPosition extends OpMode {
                             from_node = false;
                         }
                     }
-                    if (Math.abs(getFollowedLineError()) < line_angle_error_threshold) {
+                    int index = getFollowedLineIndex();
+                    if (Math.abs(getFollowedLineError()) < line_angle_error_threshold && AngleUtils.distance(AngleUtils.getPointPos(lineCenters[index]),robotCenter)<(7*screenHeight/16)) {
                         lineApproxAngle = robot_angles.fromGlobal(getFollowedLineAngle());
                         telemetry.addData("Updated target angle",true);
                     }
@@ -412,7 +421,7 @@ public class NodeNavigateTesterWithPosition extends OpMode {
                     nodePos[1] = nodePipeline.getFindNodeImageOutput().height() - nodePos[1];
                     int targetIndex = getFollowedLineIndex();
                     double[] linePoint = AngleUtils.getPointPos(lineCenters[targetIndex]);
-                    linePoint[1] = linePipeline.maskOutput().height() - linePoint[1];
+                    linePoint[1] = screenHeight - linePoint[1];
                     double along_angle = robot_angles.toGlobal(lineApproxAngle) + (gamepad1.b ? (gamepad1.y ? -currentOrientation.firstAngle : currentOrientation.firstAngle) : 0);
                     double perpDist = AngleUtils.perpendicularDistance(linePoint, along_angle, nodePos);
                     double parDist = AngleUtils.parallelDistance(linePoint, along_angle, nodePos);
@@ -586,9 +595,9 @@ public class NodeNavigateTesterWithPosition extends OpMode {
     private double[] getShiftedLineAngles(boolean useNode){
         double[] shiftedAngles = new double[lineAngles.length];
         if (useNode) {
-            double[] nodePoint = {nodeCenter.x,linePipeline.maskOutput().height() - nodeCenter.y};
+            double[] nodePoint = {nodeCenter.x,screenHeight - nodeCenter.y};
             for (int i = 0; i < lineCenters.length; i++) {
-                double[] centerPoint = {lineCenters[i].x, linePipeline.maskOutput().height() - lineCenters[i].y};
+                double[] centerPoint = {lineCenters[i].x, screenHeight - lineCenters[i].y};
                 double angle = OpenCV_angles.toGlobal(lineAngles[i]);
                 boolean sign = AngleUtils.parallelDistance(nodePoint,angle,centerPoint) <= 0;
                 telemetry.addData("Parallel line check ", AngleUtils.parallelDistance(nodePoint,angle,centerPoint));
@@ -635,13 +644,13 @@ public class NodeNavigateTesterWithPosition extends OpMode {
         switch (currentMode) {
             case FOLLOW_LINE:
                 double lineAngle = robot_angles.toGlobal(lineApproxAngle) - currentOrientation.firstAngle;
-                double[] linePoint =  {linePipeline.maskOutput().width()/2,linePipeline.maskOutput().height()/2};;
+                double[] linePoint =  {linePipeline.maskOutput().width()/2,screenHeight/2};;
                 if (lineCenters != null && lineCenters.length > 0) {
                     if (Math.abs(getFollowedLineError()) < line_angle_error_threshold) {
                         int targetIndex = getFollowedLineIndex();
                         Point center = lineCenters[targetIndex];
                         linePoint = AngleUtils.getPointPos(center);
-                        linePoint[1] = linePipeline.maskOutput().height() - linePoint[1];
+                        linePoint[1] = screenHeight - linePoint[1];
                         lineAngle = getFollowedLineAngle() - currentOrientation.firstAngle;
                     }
                 }

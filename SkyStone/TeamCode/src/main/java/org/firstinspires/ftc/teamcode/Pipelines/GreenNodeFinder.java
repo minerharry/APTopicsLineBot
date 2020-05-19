@@ -85,9 +85,9 @@ public class GreenNodeFinder extends BetterOpenCVPipeline {
 
         // Step HSV_Threshold0:
         Mat hsvThresholdInput = source0;
-        double[] hsvThresholdHue = {64.74819912327278, 97.06484641638228};
+        double[] hsvThresholdHue = {39.74819912327278, 97.06484641638228};
         double[] hsvThresholdSaturation = {47.39208323278015, 255.0};
-        double[] hsvThresholdValue = {27.51798451804429, 240};
+        double[] hsvThresholdValue = {35.51798451804429, 240};
         hsvThreshold(hsvThresholdInput, hsvThresholdHue, hsvThresholdSaturation, hsvThresholdValue, hsvThresholdOutput);
 
         // Step Mask0:
@@ -106,7 +106,7 @@ public class GreenNodeFinder extends BetterOpenCVPipeline {
 
         // Find most circular contour by comparing minEnclosingCircle area to contour area
         double areaLimit = 1500;
-        double minCircularity = 0.2;
+        double minCircularity = 0.15;
         double radius = 0;
         Point center = null;
         double maxArea = 0;
@@ -375,9 +375,10 @@ public class GreenNodeFinder extends BetterOpenCVPipeline {
         stageToRenderToViewport = stages[nextStageNum];
     }
 
-
-
-
+    @Override
+    public String getDisplayedStageName() {
+        return "Green Node finder, displayed stage: " + stageToRenderToViewport.name();
+    }
 
 }
 

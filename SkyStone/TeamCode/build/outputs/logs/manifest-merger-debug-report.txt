@@ -12,6 +12,7 @@ MERGED from [:WirelessP2p-release:] C:\Users\harrison_truscott\.gradle\caches\tr
 MERGED from [:tfod-release:] C:\Users\harrison_truscott\.gradle\caches\transforms-2\files-2.1\130cc9088e8adaaac19afb5231144980\AndroidManifest.xml:2:1-11:12
 MERGED from [:tensorflow-lite-0.0.0-nightly:] C:\Users\harrison_truscott\.gradle\caches\transforms-2\files-2.1\676b6cd168c9d5fa71075c33fe7cfb35\AndroidManifest.xml:2:1-6:12
 MERGED from [com.github.dogecv:dogecv:2020.4-alpha] C:\Users\harrison_truscott\.gradle\caches\transforms-2\files-2.1\06e31bff96079fb3c1acaf6657d7c48a\AndroidManifest.xml:2:1-17:12
+MERGED from [org.openftc:ftc-opmode-tuner-common:0.22] C:\Users\harrison_truscott\.gradle\caches\transforms-2\files-2.1\d0b0d2f05cb876746044e2f913399ab6\AndroidManifest.xml:2:1-11:12
 MERGED from [:Inspection-release:] C:\Users\harrison_truscott\.gradle\caches\transforms-2\files-2.1\9f10a19835a14966b7a3888e6f4dff6e\AndroidManifest.xml:2:1-32:12
 MERGED from [:Blocks-release:] C:\Users\harrison_truscott\.gradle\caches\transforms-2\files-2.1\9e5b6ece4302c9691cb3322f5602d081\AndroidManifest.xml:2:1-26:12
 MERGED from [:RobotServer-release:] C:\Users\harrison_truscott\.gradle\caches\transforms-2\files-2.1\301dca9d092097ceac5e6c123eab0e58\AndroidManifest.xml:2:1-11:12
@@ -92,6 +93,8 @@ MERGED from [:tfod-release:] C:\Users\harrison_truscott\.gradle\caches\transform
 MERGED from [:tfod-release:] C:\Users\harrison_truscott\.gradle\caches\transforms-2\files-2.1\130cc9088e8adaaac19afb5231144980\AndroidManifest.xml:7:5-9:41
 MERGED from [com.github.dogecv:dogecv:2020.4-alpha] C:\Users\harrison_truscott\.gradle\caches\transforms-2\files-2.1\06e31bff96079fb3c1acaf6657d7c48a\AndroidManifest.xml:7:5-9:41
 MERGED from [com.github.dogecv:dogecv:2020.4-alpha] C:\Users\harrison_truscott\.gradle\caches\transforms-2\files-2.1\06e31bff96079fb3c1acaf6657d7c48a\AndroidManifest.xml:7:5-9:41
+MERGED from [org.openftc:ftc-opmode-tuner-common:0.22] C:\Users\harrison_truscott\.gradle\caches\transforms-2\files-2.1\d0b0d2f05cb876746044e2f913399ab6\AndroidManifest.xml:7:5-9:41
+MERGED from [org.openftc:ftc-opmode-tuner-common:0.22] C:\Users\harrison_truscott\.gradle\caches\transforms-2\files-2.1\d0b0d2f05cb876746044e2f913399ab6\AndroidManifest.xml:7:5-9:41
 MERGED from [:Inspection-release:] C:\Users\harrison_truscott\.gradle\caches\transforms-2\files-2.1\9f10a19835a14966b7a3888e6f4dff6e\AndroidManifest.xml:7:5-9:41
 MERGED from [:Inspection-release:] C:\Users\harrison_truscott\.gradle\caches\transforms-2\files-2.1\9f10a19835a14966b7a3888e6f4dff6e\AndroidManifest.xml:7:5-9:41
 MERGED from [:Blocks-release:] C:\Users\harrison_truscott\.gradle\caches\transforms-2\files-2.1\9e5b6ece4302c9691cb3322f5602d081\AndroidManifest.xml:7:5-9:41

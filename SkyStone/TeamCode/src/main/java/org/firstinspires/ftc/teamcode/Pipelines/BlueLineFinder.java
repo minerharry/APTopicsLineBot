@@ -28,8 +28,8 @@ import org.openftc.easyopencv.OpenCvPipeline;
 public class BlueLineFinder extends BetterOpenCVPipeline {
 
 
-    private double[] hsvThresholdHue = new double[]{98.21167173282997, 119.51597296375203};
-    private double[] hsvThresholdSaturation = new double[]{123.83093962566458, 255.0};
+    private double[] hsvThresholdHue = new double[]{98.21167173282997, 139.51597296375203};
+    private double[] hsvThresholdSaturation = new double[]{101.83093962566458, 255.0};
     private double[] hsvThresholdValue = new double[]{110, 255.0};
 
 
@@ -56,6 +56,7 @@ public class BlueLineFinder extends BetterOpenCVPipeline {
     private Mat thresholdImage = new Mat();
     private double lineAngle = 0;
     private double lineAngles[] = {};
+    private double lineLengths[] = {};
     private Telemetry telemetry;
     private boolean usingTelemetry;
     private int numRects;
@@ -82,6 +83,9 @@ public class BlueLineFinder extends BetterOpenCVPipeline {
         return numRects;
     }
 
+    public double[] getLineLengths(){
+        return lineLengths;
+    }
 
     @Override
     public Mat processImage(Mat in) {
@@ -112,6 +116,7 @@ public class BlueLineFinder extends BetterOpenCVPipeline {
             numRects = boxes.size();
             lineAngles = new double[numRects];
             lineCenters = new Point[numRects];
+            lineLengths = new double[numRects];
             int j = 0;
             for (RotatedRect rect : boxes) {
                 Point[] points = new Point[4];
@@ -127,8 +132,10 @@ public class BlueLineFinder extends BetterOpenCVPipeline {
                 outputTelemetry("Line angle: ", ""+angle);
                 Point center = rect.center;
                 lineCenters[j] = center;
+
                 Point direction = new Point(Math.cos(angle * Math.PI / 180), Math.sin(angle * Math.PI / 180)); //find major axis directions
                 double biggestAxis = Math.max(rect.size.height, rect.size.width);
+                lineLengths[j] = biggestAxis;
                 Point p1 = new Point(center.x + direction.x * biggestAxis, center.y + direction.y * biggestAxis);
                 Point p2 = new Point(center.x - direction.x * biggestAxis, center.y - direction.y * biggestAxis);
                 Imgproc.line(in, p1, p2, new Scalar(0, 255, 0));
@@ -433,6 +440,11 @@ public class BlueLineFinder extends BetterOpenCVPipeline {
         }
 
         stageToRenderToViewport = stages[nextStageNum];
+    }
+
+    @Override
+    public String getDisplayedStageName() {
+        return "Blue Line finder, displayed stage: " + stageToRenderToViewport.name();
     }
 }
 

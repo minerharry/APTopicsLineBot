@@ -8,7 +8,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
 
 public class JointPipeline extends BetterOpenCVPipeline {
 
-    private OpenCvPipeline[] myPipelines;
+    private BetterOpenCVPipeline[] myPipelines;
     private int viewedPipeline;
     public int getViewedPipelineNum(){
         return viewedPipeline;
@@ -17,13 +17,12 @@ public class JointPipeline extends BetterOpenCVPipeline {
 
 
 
-    public JointPipeline(OpenCvPipeline[] pipelines) {
+    public JointPipeline(BetterOpenCVPipeline[] pipelines) {
         myPipelines = pipelines;
         cyclePipelines = true;
     }
-    public JointPipeline(OpenCvPipeline[] pipelines, int fixedViewPipeline){
+    public JointPipeline(BetterOpenCVPipeline[] pipelines, int fixedViewPipeline){
         myPipelines = pipelines;
-        cyclePipelines = true;
         viewedPipeline = fixedViewPipeline;
         cyclePipelines = false;
     }
@@ -46,11 +45,11 @@ public class JointPipeline extends BetterOpenCVPipeline {
 
     }
 
-    public OpenCvPipeline getViewedPipeline(){
+    public BetterOpenCVPipeline getViewedPipeline(){
         return getPipeline(viewedPipeline);
     }
 
-    public OpenCvPipeline getPipeline(int i){
+    public BetterOpenCVPipeline getPipeline(int i){
         return myPipelines[i];
     }
 
@@ -63,6 +62,10 @@ public class JointPipeline extends BetterOpenCVPipeline {
         else {
             viewedPipeline = (viewedPipeline >= myPipelines.length ? 0 : viewedPipeline + 1);
         }
+    }
+
+    public String getDisplayedStageName(){
+        return "Joint pipeline, displayed: " + getViewedPipeline().getDisplayedStageName();
     }
 
 

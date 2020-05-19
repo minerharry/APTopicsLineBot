@@ -1,11 +1,12 @@
 package org.firstinspires.ftc.teamcode.component_tests;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.Range;
+
+import net.frogbots.ftcopmodetunercommon.opmode.TunableOpMode;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -14,6 +15,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.teamcode.AngleUtils;
 import org.firstinspires.ftc.teamcode.AngleSystem;
+import org.firstinspires.ftc.teamcode.PIDController;
+import org.firstinspires.ftc.teamcode.Pipelines.BetterOpenCVPipeline;
 import org.firstinspires.ftc.teamcode.Pipelines.BlueLineFinder;
 import org.firstinspires.ftc.teamcode.Pipelines.DisplayElement;
 import org.firstinspires.ftc.teamcode.Pipelines.GreenNodeFinder;
@@ -27,7 +30,7 @@ import org.openftc.easyopencv.OpenCvWebcam;
 import java.util.ArrayList;
 
 @TeleOp(name="Navigation Basic Tester")
-public class NodeNavigateTester extends OpMode {
+public class NodeNavigateTester extends TunableOpMode {
 
     //Motor stuff
     enum motorNames {
@@ -65,8 +68,22 @@ public class NodeNavigateTester extends OpMode {
     private final double line_speed = 0.35;
     private final double line_steer_coeff = 0.5; //how quickly it goes from min steer to max steer based on angle
     private final double line_max_steer = 0.8; //maximum steer that will be applied
-    private final double line_turn_angle = 1*Math.PI/4;
+    private final double line_turn_angle = 1*Math.PI/6;
     private final double line_reverse_angle = 4*Math.PI/5;
+
+
+
+    private double line_pid_kp = 1;
+    private double line_pid_ki = 1;
+    private double line_pid_kd = 1;
+    private boolean use_udp_control = true;
+
+    private PIDController line_steer_pid;
+
+
+
+
+
 
     private final double line_angle_error_threshold = Math.PI/10;
 
@@ -171,12 +188,19 @@ public class NodeNavigateTester extends OpMode {
          */
         nodePipeline = new GreenNodeFinder();
         linePipeline = new BlueLineFinder();
-        OpenCvPipeline[] pipelines = {nodePipeline,linePipeline};
+        BetterOpenCVPipeline[] pipelines = {nodePipeline,linePipeline};
         jointPipeline = new JointPipeline(pipelines);
         webcam.setPipeline(jointPipeline);
 
         webcam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
 
+
+        line_steer_pid = new PIDController(line_pid_kp,line_pid_ki,line_pid_kd);
+        line_steer_pid.setSetpoint(0);
+        line_steer_pid.setOutputRange(-1,1);
+        line_steer_pid.setInputRange(-10,10);
+        line_steer_pid.setContinuous();
+        line_steer_pid.enable();
 
     }
 
@@ -186,6 +210,16 @@ public class NodeNavigateTester extends OpMode {
         lineCenters = linePipeline.getLineCenters();
         nodeCenter = nodePipeline.getFindNodeCenter();
 
+        if (use_udp_control) {
+            line_pid_kp = getDouble("Kp");
+            line_pid_ki = getDouble("Ki");
+            line_pid_kd = getDouble("Kd");
+
+        }
+
+        telemetry.addData("Kp",line_pid_kp);
+        telemetry.addData("Ki",line_pid_ki);
+        telemetry.addData("Kd",line_pid_kd);
 
 
         //get gyro angle
@@ -267,7 +301,13 @@ public class NodeNavigateTester extends OpMode {
             double speed = 0;
             switch (currentMode){
                 case FOLLOW_LINE:
-                    steer = (Math.abs(targetAngle) < line_turn_angle ? line_speed : (Math.abs(targetAngle) > line_reverse_angle ? -line_speed : 0.05*-line_speed));
+                    if (lineAngles != null && lineAngles.length > 0 && getFollowedLineError()<line_angle_error_threshold ) {
+                        double lineAngle = getFollowedLineAngle() - currentOrientation.firstAngle;
+                        double perpDist = AngleUtils.perpendicularDistance(robotCenter, lineAngle, targetPoint);
+                        steer = line_steer_pid.performPID(perpDist)*line_max_steer;
+                    }
+                    else
+                        steer = Range.clip(targetAngle*line_steer_coeff,-1,1)* line_max_steer;
                     maxSpeed = 1;
                     speed = AngleUtils.parallelDistance(robotCenter,Math.PI/2, targetPoint);
 
