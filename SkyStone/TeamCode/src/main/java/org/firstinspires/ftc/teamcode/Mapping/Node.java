@@ -28,6 +28,10 @@ public class Node implements Serializable, Comparable<Node> {
 		return myId;
 	}
 
+	public double getPositionError(){
+		return lastPositionError;
+	}
+
 	public boolean hasStub() {
 		updateHasStub();
 		return hasStub;
@@ -95,15 +99,15 @@ public class Node implements Serializable, Comparable<Node> {
 		lastPositionError = initialError;
 	}
 
-	public boolean merge(Node other) {
+	public ArrayList<MergeError> merge(Node other) {
 		String mergeString = "Attempting merge of node " + other.toString() + " into node " + this.toString();
-
+		ArrayList<MergeError> errors = new ArrayList<>();
 		if (equals(other)) {
 			// merging the same node; not possible for two nodes to have the same id w/o
 			// merging
 			mergeString += "\nMerge ended: same node";
 			System.out.println(mergeString);
-			return true;
+			return errors;
 		}
 
 		// Note: should never return false
@@ -121,8 +125,12 @@ public class Node implements Serializable, Comparable<Node> {
 				value.setEnd(this);
 			}
 			mergeString += "\nAttempting to merge associated branch " + value + " into " + key;
-			boolean success = key.mergeFrom(value);
-			mergeString += "\n\tBranch merge " + (success ? "successful" : "failed");
+			MergeError error = key.mergeFrom(value);
+			mergeString += "\n\tBranch merge " + (error == null ? "successful" : "failed");
+			if (error != null){
+				mergeString += "\n\tBranch Merge Error: " + error;
+				errors.add(error);
+			}
 			mergeString += "\n\tFinal stored branch: " + key;
 
 		}
@@ -131,7 +139,7 @@ public class Node implements Serializable, Comparable<Node> {
 		updateHasStub();
 		lastPositionError = Math.max(other.lastPositionError, lastPositionError);
 		System.out.println(mergeString);
-		return true;
+		return errors;
 	}
 
 	// only works when starts are aligned
@@ -248,6 +256,25 @@ public class Node implements Serializable, Comparable<Node> {
 
 	public boolean equals(Node other) {
 		return myId == other.getId();
+	}
+
+	public ArrayList<MergeError> mergeabilityErrors(Node other){
+		ArrayList<MergeError> result = new ArrayList<>();
+		if (getOutwardAngles().length != other.getOutwardAngles().length) {
+			return result;
+		}
+		double mergeScore = getBestAngleAssociationScore(this, other);
+		double distance = AngleUtils.distance(getApproxPos(), other.getApproxPos());
+		System.out.println("Checking mergeability of " + other + " into " + this);
+		System.out.println("Angle Merge Score: " + mergeScore + ", Distance: " + distance);
+
+		if (!(mergeScore < angleMergeabilityThresholdScore)){
+			result.add(new MergeError(this, other, MergeError.NodeError.BAD_ANGLES));
+		}
+		if (!(distance < (distanceMergeabilityThreshold + Math.abs(other.lastPositionError - lastPositionError)))){
+			result.add(new MergeError(this,other, MergeError.NodeError.TOO_FAR));
+		}
+		return result;
 	}
 
 	public boolean isMergeable(Node other) {

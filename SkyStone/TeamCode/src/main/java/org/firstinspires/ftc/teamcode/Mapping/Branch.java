@@ -5,7 +5,7 @@ import static org.firstinspires.ftc.teamcode.AngleUtils.midAngle;
 import static org.firstinspires.ftc.teamcode.AngleUtils.weightedAvgAngle;
 
 import java.io.Serializable;
-
+import org.firstinspires.ftc.teamcode.Mapping.MergeError.BranchError;
 import org.firstinspires.ftc.teamcode.AngleUtils;
 
 public class Branch implements Serializable, Comparable<Branch>{
@@ -72,7 +72,7 @@ public class Branch implements Serializable, Comparable<Branch>{
 	// returns whether the merge was successful; dependent on whether the other
 	// branch is between the same nodes
 	// TODO: IMPLEMENT DISCREPANCY SEARCH
-	public boolean mergeFrom(Branch other) {
+	public MergeError mergeFrom(Branch other) {
 		boolean myStub = getIsStub();
 		boolean otherStub = other.getIsStub();
 		boolean neitherStub = !(myStub || otherStub);
@@ -81,16 +81,18 @@ public class Branch implements Serializable, Comparable<Branch>{
 		if (getStart().equals(other.getStart())) {
 			alignedOrientation = true;
 			if (!(!neitherStub || myEnd.equals(other.getEnd())))
-				return false;
+				return new MergeError(this,other,myEnd,other.getEnd());
 			valid = true;
 		} else if (myStub && otherStub) {
-			return false;
+			return new MergeError(this,other,alignedOrientation,BranchError.MISALIGNED_STUBS);
 		}
 		if (!valid){
 			if ((otherStub || myStart.equals(other.getEnd())) && (myStub || myEnd.equals(other.getStart())))
 				valid = true;
 			else
-				return false;
+				if (otherStub)
+					return new MergeError(this,other,myEnd,other.getStart());
+				return new MergeError(this,other,myStart,other.getEnd());
 		}
 
 		// facing the same way
@@ -121,7 +123,7 @@ public class Branch implements Serializable, Comparable<Branch>{
 		}
 		if (!myStub)
 			myAngle = AngleUtils.angleBetweenPoints(myStart.getApproxPos(), myEnd.getApproxPos());
-		return true;
+		return null;
 	}
 
 	// converts a stub to a full branch by adding an end

@@ -14,16 +14,43 @@ import java.util.Stack;
 
 import org.firstinspires.ftc.teamcode.AngleUtils;
 
-public class NBMap implements Serializable {
+public class NBMap implements Serializable{
 	// A node-branch Map
 	private ArrayList<Node> nodes;
 
 	// currently unreliable & unused
 	private Set<Branch> branches;
 
+	//only error types that can and need to be investigated by the robot
+	private ArrayList<MergeError> errors;
+
+	public ArrayList<MergeError> getErrors(){
+		return errors;
+	}
+
+	public boolean addError(MergeError error){
+		if (error.hasLocation() && !error.isResolved()){ //only log errors if there is a purpose;
+			//errors w/o locations are unresolvable
+			errors.add(error);
+			return true;
+		}
+		return false;
+	}
+
+	public ArrayList<MergeError> addErrors(ArrayList<MergeError> errors){
+		ArrayList<MergeError> result = new ArrayList<>();
+		for (MergeError error: errors) {
+			if (!addError(error)){
+				result.add(error);
+			}
+		}
+		return result;
+	}
+
 	public NBMap() {
 		nodes = new ArrayList<>();
 		branches = new HashSet<>();
+		errors = new ArrayList<>();
 	}
 
 	// directly inserts a new node w/o checking for duplicate; should only be used
@@ -67,7 +94,8 @@ public class NBMap implements Serializable {
 		return result;
 	}
 
-    private class scoreComparer implements Comparator<Node> {
+
+	private class scoreComparer implements Comparator<Node> {
 		private Map<Node, Double> score;
 
 		public scoreComparer(Map<Node, Double> gScore) {
@@ -266,8 +294,14 @@ public class NBMap implements Serializable {
 			if (containsNode(insertNode)){
 				removeNode(insertNode);
 			}
-			mergeInto.merge(insertNode);
-
+			ArrayList<MergeError> errors = mergeInto.merge(insertNode);
+			errors = addErrors(errors); //only remaining errors
+			if (errors != null && errors.size() != 0){
+				System.out.println("Unresolvable Error(s) in merge:");
+				for (MergeError error : errors){
+					System.out.println("\t" + error.toString());
+				}
+			}
 			// recursively attempt to merge the new node into the network since it has moved
 			return insertNode(mergeInto);
 		} else {

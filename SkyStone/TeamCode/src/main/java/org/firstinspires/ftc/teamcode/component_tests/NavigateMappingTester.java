@@ -15,6 +15,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.teamcode.AngleSystem;
 import org.firstinspires.ftc.teamcode.AngleUtils;
 import org.firstinspires.ftc.teamcode.Mapping.Branch;
+import org.firstinspires.ftc.teamcode.Mapping.MergeError;
 import org.firstinspires.ftc.teamcode.Mapping.NBMap;
 import org.firstinspires.ftc.teamcode.Mapping.Node;
 import org.firstinspires.ftc.teamcode.Pipelines.BetterOpenCVPipeline;
@@ -512,20 +513,34 @@ public class NavigateMappingTester extends OpMode {
                                 ideal_next = nextBranch.getStart();
                             tempNode = new Node(myLocation.getPos(),angles,predictedPositionError);
                             if (ideal_next.isMergeable(tempNode)){
-                                ideal_next.merge(tempNode);
+                                ArrayList<MergeError> errors = ideal_next.merge(tempNode);
+                                errors = map.addErrors(errors); //only remaining errors
+                                if (errors != null && errors.size() != 0){
+                                    System.out.println("Unresolvable Error(s) in merge:");
+                                    for (MergeError error : errors){
+                                        System.out.println("\t" + error.toString());
+                                    }
+                                }
                                 lastNode = ideal_next;
                                 navStatus = "Followed line to correct node, continuing navigation. ";
                             }
                             else{
                                 lastNode = map.locateNode(tempNode,true);
-                                lastNode.merge(tempNode);
+                                ArrayList<MergeError> errors = lastNode.merge(tempNode);
+                                errors = map.addErrors(errors); //only remaining errors
+                                if (errors != null && errors.size() != 0){
+                                    System.out.println("Unresolvable Error(s) in merge:");
+                                    for (MergeError error : errors){
+                                        System.out.println("\t" + error.toString());
+                                    }
+                                }
                                 if (map.getStubs().size() != 0)
                                     navPath = map.pathToNearestStub(lastNode);
                                 else
                                     navPath = map.getRoute(lastNode,map.getRandomExcludedNode(lastNode));
                                 navStatus = "Followed line to incorrect node, recalculating... ";
                             }
-                            if (navPath.size() == 0){
+                            if (navPath == null || navPath.size() == 0){
                                 if (map.getStubs().size() != 0)
                                     navPath = map.pathToNearestStub(lastNode);
                                 else
